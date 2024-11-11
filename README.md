@@ -12,8 +12,9 @@ Adapted into different python classes, flexibility introduced with variable numb
 
 ## Usage
 Clone the repository, go into mechanisms and compile, by writing "mknrndll" on the console.
-**test_EC.ipynb** - for extracellular stimulation, run , choosing between the rx and stim methods.
-**test_electrode.ipynb** - with a current clamp similar to the paper - can recreate the obtained results.
+* **test_EC.ipynb** - for extracellular stimulation, run , choosing between the rx and stim methods.
+* **test_electrode.ipynb** - with a current clamp similar to the paper - can recreate the obtained results.
+
 Change the cell class as you see fit.
 
 
