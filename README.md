@@ -15,6 +15,6 @@ Clone the repository, go into mechanisms and compile, by writing "mknrndll" on t
 * **test_EC.ipynb** - for extracellular stimulation, run , choosing between the rx and stim methods.
 * **test_electrode.ipynb** - with a current clamp similar to the paper - can recreate the obtained results.
 
-Change the cell class as you see fit.
+Change the cell class as you see fit (**HH_minimal_cells.py**).
 
 
