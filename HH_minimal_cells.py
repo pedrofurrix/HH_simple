@@ -106,7 +106,7 @@ class Fast_Spiking(Cell):
             sec.cm = 1  # Membrane capacitance in micro Farads / cm^2
             sec.insert("pas")
             sec.insert("extracellular")
-            #sec.insert('xtra')
+            sec.insert('xtra')
             sec.insert('hh2')
 
             for seg in sec: 
@@ -171,7 +171,7 @@ class Intrinsic_Bursting(Cell):
             sec.cm = 1  # Membrane capacitance in micro Farads / cm^2
             sec.insert("pas")
             sec.insert("extracellular")
-            #sec.insert('xtra')
+            sec.insert('xtra')
             sec.insert('hh2')   # Hodgin-Huxley INa and IK 
             sec.insert("im")    # M current  
             sec.insert("cad")   # calcium decay
@@ -264,7 +264,7 @@ class Repetitive_Bursting(Cell):
             sec.cm = 1  # Membrane capacitance in micro Farads / cm^2
             sec.insert("pas")
             sec.insert("extracellular")
-            #sec.insert('xtra')
+            sec.insert('xtra')
             sec.insert('hh2')   # Hodgin-Huxley INa and IK 
             sec.insert("im")    # M current  
             sec.insert("cad")   # calcium decay
@@ -365,7 +365,7 @@ class Low_Threshold(Cell):
             sec.cm = 1  # Membrane capacitance in micro Farads / cm^2
             sec.insert("pas")
             sec.insert("extracellular")
-            #sec.insert('xtra')
+            sec.insert('xtra')
             sec.insert('hh2')   # Hodgin-Huxley INa and IK 
             sec.insert("im")    # M current  
             sec.insert("cad")   # calcium decay
@@ -473,7 +473,7 @@ class Regular_Spiking(Cell):
             sec.cm = 1  # Membrane capacitance in micro Farads / cm^2
             sec.insert("pas")
             sec.insert("extracellular")
-            #sec.insert('xtra')
+            sec.insert('xtra')
             sec.insert('hh2')   # Hodgin-Huxley INa and IK 
             sec.insert("im")    # M current  
             sec.insert("cad")   # calcium decay
