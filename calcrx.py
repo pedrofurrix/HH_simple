@@ -39,9 +39,9 @@ def setrx1(xe,ye,ze): #x,y,z are the electrode coordinates #it's wrong, see the 
         # this would be meaningless since the location would be inside the cell
         # so force r to be at least as big as local radius
                       #  r = h.diam(seg)/2 if r==0 else r=r
+                        if r==0:
+                            r=seg.diam/2
                         rt+=(rho / 4 / h.PI)*(1/r)*0.01
-                    if rt==0:
-                        rt=seg.diam/2
                     seg.rx_xtra = rt
 
 
