@@ -1,4 +1,4 @@
-from HH_minimal_cells import Fast_Spiking,Intrinsic_Bursting
+from Extracellular_test.HH_simple.functions.HH_minimal_cells import Fast_Spiking,Intrinsic_Bursting
 from neuron import h,gui
 import matplotlib.pyplot as plt
 h.load_file("stdrun.hoc")

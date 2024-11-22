@@ -26,6 +26,8 @@ def setrx2(rho,b,c):
 
 def setrx1(xe,ye,ze): #x,y,z are the electrode coordinates #it's wrong, see the representation
      #include more than one electrode
+     #works only for the case where the waveform is the same for multiple electrodes
+     #for different waveforms, see multiplesources
      #doesn't hold up if the waveforms are different - will have to see how I can do that
      #x,y and z in um and rt in MOhm (rho in ohm cm)
         for sec in h.allsec():
@@ -101,7 +103,8 @@ def set_uniform_field_between_plates(v_plate,distance,field_orientation,ref_poin
 
                 # Calculate displacement from the zero potential reference
                 displacement = np.array([seg.x_xtra - ref_x, seg.y_xtra - ref_y, seg.z_xtra - ref_z]) #um  
-
+                print(displacement)
+                
                 # Calculate the component of displacement in the direction of the field
                 field_component = np.dot(displacement, field_orientation)
                 
@@ -111,5 +114,5 @@ def set_uniform_field_between_plates(v_plate,distance,field_orientation,ref_poin
                 #use minus sign - look at explanation - because the electric field is positive from + to -
                 # a dislocation in the direction of the electric field means the potential is reduced
                 #Should I include a rho factor??? 
-                #(supposedly, basically, as it is, a current of 1mA will make it so that V has the nominal value of rx_xtra always)
+                #(supposedly, basically, as it is, a current of 1mA will make it so that V has the nominal value of rx_xtra*1e6 always)
                 #1e-6 is just to neutralize the other conversion factor

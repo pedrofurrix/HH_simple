@@ -123,3 +123,45 @@ def simpleplaysin(amp,dt,tstop,freq):
 #   vec.plot(g,tvec)
 #   g.exec_menu("View = plot")
   
+#amp in mA, dt,dur and simtime in ms, freq in Hz
+#Amplitude modulation function, with variable depth and modulation frequency
+#Variable start and end time for stimulation, defined by ton and dur
+#depth is between 0 and 1, with 1 being 100% mod depth
+#modfreq is in Hz
+def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq):
+  times=np.arange(0,simtime+dt,dt)
+  # 1000 is a factor because dt is in ms and freq in Hz
+  #added -ton so that it starts at 0
+  mod=1/2*(np.sin(2*np.pi*modfreq/1000*(times-ton-1/(4*modfreq/1000)))+1)*depth+(1-depth)
+  stim=amp*mod*np.sin(2*np.pi*freq/1000*(times-ton))
+  #Making it so that while time<ton and time>ton+dur, stim value=0
+  stim[times < ton] = 0
+  stim[times > (ton + dur)] = 0
+
+  t=h.Vector(times)
+  stim1=h.Vector(stim)
+  stim1.play(h._ref_is_xtra,t,0)
+  return t,stim1
+
+#amp in mA, dt,dur and simtime in ms, freq in Hz
+#Amplitude modulation function, with variable depth and modulation frequency
+#Variable start and end time for stimulation, defined by ton and dur
+#depth is between 0 and 1, with 1 being 100% mod depth
+#modfreq is in Hz
+#varies between 1+depth and 1-depth
+#Based on wikipedia definition of modulation index
+def ampmodulation_wiki(ton,amp,depth,dt,dur,simtime,freq,modfreq):
+  times=np.arange(0,simtime+dt,dt)
+  # 1000 is a factor because dt is in ms and freq in Hz
+  #added -ton so that it starts at 0
+  mod=depth*(np.sin(2*np.pi*modfreq/1000*(times-ton-1/(4*modfreq/1000))))+1
+
+  stim=amp*mod*np.sin(2*np.pi*freq/1000*(times-ton))
+  #Making it so that while time<ton and time>ton+dur, stim value=0
+  stim[times < ton] = 0
+  stim[times > (ton + dur)] = 0
+
+  t=h.Vector(times)
+  stim1=h.Vector(stim)
+  stim1.play(h._ref_is_xtra,t,0)
+  return t,stim1

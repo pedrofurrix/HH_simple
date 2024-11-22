@@ -1,7 +1,7 @@
 from neuron import h
 
 # Define the frequency and d_lambda (used to calculate nseg)
-freq = 1000  # Hz, frequency at which AC length constant will be computed
+freq = 1000  # Hz, frequency at which AC length constant will be computed #Usually it's 100, but since we're working with kHz stim...
 d_lambda = 0.1
 
 # Define the function to compute the AC length constant

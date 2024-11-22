@@ -8,7 +8,7 @@ class Cell:
         self._discretize(nseg)
         self._setup_biophysics()
         self.x = self.y = self.z = 0
-        h.define_shape()
+        self._setup_apcs()
         self._rotate_z(theta) 
         self._set_position(x, y, z) #x,y,z are in um
         # Spike detector - register the spikes associated with the cell
@@ -20,16 +20,22 @@ class Cell:
         self._ncs = []
 
         self.soma_v = h.Vector().record(self.soma(0.5)._ref_v)
+    
+    def _setup_morphology(self):
+        self.soma = h.Section(name="soma", cell=self)
+        self.dend = h.Section(name="dend", cell=self)
+        self.dend.connect(self.soma)
 
     def _discretize(self,nseg):
         if nseg==0:
+            from . import dlambda
             for sec in self.all:
-                import dlambda
                 dlambda.geom_nseg(self)
              
         else:
             for sec in self.all:
                 sec.nseg=nseg
+            h.define_shape()
 
     def __repr__(self):
         return "{}[{}]".format(self.name, self._gid)
@@ -57,6 +63,15 @@ class Cell:
                 xprime = x * c - y * s
                 yprime = x * s + y * c
                 sec.pt3dchange(i, xprime, yprime, sec.z3d(i), sec.diam3d(i))
+    def _setup_apcs(self): # Set up APCs with standard time and threshold
+        self.apc_soma=h.APCount(self.soma(0.5)) 
+        self.apc_dend=h.APCount(self.dend(0.5))
+        self.recAp_soma=h.Vector()
+        self.apc_soma.record(self.recAp_soma)
+        self.recAp_dend=h.Vector()
+        self.apc_dend.record(self.recAp_dend)
+        
+
 
 
 class Fast_Spiking(Cell):
@@ -92,12 +107,13 @@ class Fast_Spiking(Cell):
     name= "Fast Spiking"
 
     def _setup_morphology(self):
-        self.soma = h.Section(name="soma", cell=self)
+        super()._setup_morphology()
+        # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
         self.soma.L = self.soma.diam = 67*um #so area is about 14000 um2
-        # self.dend.L = 200*um
-        # self.dend.diam = 1*um
+        self.dend.L = 900*um # similar area 
+        self.dend.diam = 5*um
         #self.name = "Fast Spiking"
 
     def _setup_biophysics(self):
@@ -159,12 +175,13 @@ class Intrinsic_Bursting(Cell):
 
     
     def _setup_morphology(self):
-        self.soma = h.Section(name="soma", cell=self)
+        super()._setup_morphology()
+        # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
         self.soma.L = self.soma.diam = 96*um #so area is about 29000 um2
-        # self.dend.L = 200*um
-        # self.dend.diam = 1*um
+        self.dend.L = 1843*um #so area is similar...
+        self.dend.diam = 5*um
     def _setup_biophysics(self):
         for sec in self.all:
             sec.Ra = 100  # Axial resistance in Ohm * cm
@@ -252,12 +269,13 @@ class Repetitive_Bursting(Cell):
 
     
     def _setup_morphology(self):
-        self.soma = h.Section(name="soma", cell=self)
+        super()._setup_morphology()
+        # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
         self.soma.L = self.soma.diam = 96*um #so area is about 29000 um2
-        # self.dend.L = 200*um
-        # self.dend.diam = 1*um
+        self.dend.L = 1843*um #so area is similar...
+        self.dend.diam = 5*um
     def _setup_biophysics(self):
         for sec in self.all:
             sec.Ra = 100  # Axial resistance in Ohm * cm
@@ -353,12 +371,14 @@ class Low_Threshold(Cell):
 
     
     def _setup_morphology(self):
-        self.soma = h.Section(name="soma", cell=self)
+        super()._setup_morphology()
+        # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
         self.soma.L = self.soma.diam = 96*um #so area is about 29000 um2
-        # self.dend.L = 200*um
-        # self.dend.diam = 1*um
+        self.dend.L = 1843*um #so area is similar...
+        self.dend.diam = 5*um
+
     def _setup_biophysics(self):
         for sec in self.all:
             sec.Ra = 100  # Axial resistance in Ohm * cm
@@ -461,12 +481,13 @@ class Regular_Spiking(Cell):
 
     
     def _setup_morphology(self):
-        self.soma = h.Section(name="soma", cell=self)
+        super()._setup_morphology()
+        # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
         self.soma.L = self.soma.diam = 96*um #so area is about 29000 um2
-        # self.dend.L = 200*um
-        # self.dend.diam = 1*um
+        self.dend.L = 1843*um #so area is similar...
+        self.dend.diam = 5*um
     def _setup_biophysics(self):
         for sec in self.all:
             sec.Ra = 100  # Axial resistance in Ohm * cm
