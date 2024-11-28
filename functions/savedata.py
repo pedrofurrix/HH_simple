@@ -56,3 +56,17 @@ def saveplot(folder,title,fig_or_ax):
     path=os.path.join(folder,filename)
     
     fig.savefig(path)
+    print(f"Successfully saved as {filename}")
+
+def savespikes(folder,id,spiketimes):
+    filename=f"spikes{id}.csv"
+    path=os.path.join(folder,filename)
+    
+    spike_dict = {}
+    for i, spikes in enumerate(spiketimes):
+        spike_dict[f"{i}"]= spikes
+    
+    data=pd.DataFrame(spike_dict)
+    data.to_csv(path,index=False)
+    
+    
