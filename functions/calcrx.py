@@ -103,7 +103,7 @@ def set_uniform_field_between_plates(v_plate,distance,field_orientation,ref_poin
 
                 # Calculate displacement from the zero potential reference
                 displacement = np.array([seg.x_xtra - ref_x, seg.y_xtra - ref_y, seg.z_xtra - ref_z]) #um  
-                print(displacement)
+                # print(displacement)
                 
                 # Calculate the component of displacement in the direction of the field
                 field_component = np.dot(displacement, field_orientation)

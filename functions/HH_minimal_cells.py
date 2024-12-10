@@ -375,8 +375,8 @@ class Low_Threshold(Cell):
         # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
-        self.soma.L = self.soma.diam = 96*um #so area is about 29000 um2
-        self.dend.L = 1843*um #so area is similar...
+        self.soma.L = self.soma.diam = 89.2*um #so area is about 29000 um2
+        self.dend.L = 1591*um #so area is similar...
         self.dend.diam = 5*um
 
     def _setup_biophysics(self):
@@ -485,8 +485,8 @@ class Regular_Spiking(Cell):
         # self.soma = h.Section(name="soma", cell=self)
         # self.dend = h.Section(name="dend", cell=self)
         # self.dend.connect(self.soma)
-        self.soma.L = self.soma.diam = 96*um #so area is about 29000 um2
-        self.dend.L = 1843*um #so area is similar...
+        self.soma.L = self.soma.diam = 61.8*um #so area is about 1200 um2
+        self.dend.L = 764*um #so area is similar...
         self.dend.diam = 5*um
     def _setup_biophysics(self):
         for sec in self.all:

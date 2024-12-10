@@ -3,7 +3,7 @@ from . import stim
 def thresh_excited(cell,simtime,apc,simparams,stimparams,amp):
     t,stim1=stim.ampmodulation_wiki(stimparams[1],amp,stimparams[5],simparams[0],stimparams[3],simparams[1],stimparams[4],stimparams[6])
     h.finitialize(cell.v_init)
-    h.run(simtime)
+    h.continuerun(simtime)
     return apc.n>0
 
 def threshold(cell,simtime,apc,simparams,stimparams):

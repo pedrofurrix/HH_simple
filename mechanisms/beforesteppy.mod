@@ -1,4 +1,3 @@
-$ cat beforestep_py.mod
 : Python callback from BEFORE STEP
 
 NEURON {
