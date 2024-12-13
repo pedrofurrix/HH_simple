@@ -42,9 +42,8 @@ def run_single_simulation(freq, amp):
 if __name__ == '__main__':
     
 
-    v_values = [10, 20, 30, 50, 100, 150, 200, 300, 400, 500, 700, 1000]
-    CFreqs = [100, 500, 1000, 2000, 3000, 5000, 10000, 20000, 30000, 40000, 50000]
-
+    v_values = [10, 20, 30, 50]
+    CFreqs = [100]
     processes = []
 
     for freq in CFreqs:

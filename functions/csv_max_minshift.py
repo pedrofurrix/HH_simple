@@ -19,7 +19,9 @@ def load_voltages_csv(bot_dir):
 
 def load_voltages_hdf5(bot_dir):
     """
+    
     Load voltage data from an HDF5 file.
+
     """
 
     vfile = os.path.join(bot_dir, "run_voltages.h5")
@@ -73,7 +75,7 @@ def cmax_shift(bot_dir,top_dir, cell=None):
     
      
     results = {
-        "EValue": stimparams["E"],
+        "EValue": stimparams["E"]*stimparams["Multiplier"],
         "CFreq": stimparams["Carrier Frequency"],
         "max_shiftp": max(pshift),
         "min_shiftp": min(pshift),
@@ -203,6 +205,8 @@ def plot_voltage(bot_dir,results):
     saveplot(bot_dir,title1,fig)
     saveplot(bot_dir,title2,fig2)
     saveplot(bot_dir,title3,fig3)
+
+    plt.close()
 
 def get_folder(CF,E,cell_id):
     currdir=os.getcwd()

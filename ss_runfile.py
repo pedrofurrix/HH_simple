@@ -7,14 +7,7 @@ import pandas as pd
 import json
 h.load_file("stdrun.hoc")
 
-# Get the directory of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-# Change the working directory to the script's directory
-os.chdir(script_dir)
-# Verify the change
-currdir = os.getcwd()
-print(f"Current working directory is now: {currdir}")
-
+currdir=os.getcwd()
 # Load Mechanisms
 path = os.path.join(currdir, "mechanisms", "nrnmech.dll")
 print(path)
@@ -50,10 +43,10 @@ def init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point):
     h.load_file("./functions/interpxyz.hoc")
     h.load_file("./functions/setpointers.hoc")
 
-    v_plate=2000*V #- potential difference between the plates
-    distance=1*m #distance
-    field_orientation=np.array([1,0,0])#along the x axis
-    ref_point=[0,0,0] #reference point with a 0 e_extracellular
+    v_plate=v_plate*V #- potential difference between the plates
+    distance=distance*m #distance
+    field_orientation=np.array(field_orientation) 
+    ref_point=ref_point #reference point with a 0 e_extracellular
     calcrx.set_uniform_field_between_plates(v_plate,distance,field_orientation,ref_point)
 
     return cell, cell_name
@@ -184,3 +177,142 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
     folder=f"data\\{cell_id}"
     savedata.savelocations_xtra(folder,cell)
     savedata.save_locations(folder,cell)
+
+
+
+def get_results(top_dir):
+    top_file=os.path.join(top_dir, "results_summary.csv")
+    results_df=pd.read_csv(top_file)
+    return results_df
+
+def get_max_segs(top_dir,cell):
+    results_df=get_results(top_dir)
+    maxp_seg=results_df["maxp_seg"].to_list()
+    segslist=[]
+    for seg in maxp_seg:
+        if seg not in segslist:
+            segslist.append(seg)
+            print(seg)
+
+    def get_segments(segslist):
+        segments=[]
+        for seg in segslist:
+            # Parse the string
+            section_name = seg.split('(')[0]  # Extract "Fast Spiking[0].dend"             
+            segment_loc = float(seg.split('(')[1].split(')')[0])  # Example: 0.5
+            # Loop through all sections in the cell
+            for sec in cell.all:  # Assuming `cell.all` is a list of all sections
+                print (sec.name())
+                if sec.name() == section_name:
+                    # Access the segment
+                    segment=sec(segment_loc)    
+                    segments.append(segment)
+                    print(segment)
+        print(segments)
+        return segments
+    
+    segments=get_segments(segslist)
+    return segments
+
+def setup_apcs(top_dir,cell):
+    segments=get_max_segs(top_dir,cell)
+    APCounters=[]
+    for segment in segments:
+        ap_counter = h.APCount(segment) 
+        APCounters.append(ap_counter)
+    print(APCounters)
+    return segments,APCounters
+
+
+def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id):
+    cell,cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
+    time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq)
+    segments,APCounters=setup_apcs(top_dir,cell)
+
+    h.dt = dt
+    h.tstop = simtime
+    h.celsius = 37
+    h.v_init=cell.v_init
+
+    h.finitialize()
+    
+    def record_voltages():
+        global voltages
+        voltages=[seg.v for sec in cell.all for seg in sec]
+
+    h.cvode.event(simtime-20, record_voltages)
+
+    h.continuerun(simtime)
+
+    final_v=[seg.v for sec in cell.all for seg in sec]
+    seg=[seg for sec in cell.all for seg in sec]
+
+
+    delta = [final-v for final,v in zip(final_v, voltages)]
+    # Check steady_state one time point
+    def steady_state_reached(threshold=1e-3):
+        if abs(max(delta,key=abs)) >= threshold:
+            return False
+        return True
+    
+    threshold=1e-3
+    steady_state=steady_state_reached(threshold)
+
+    max_dif=max(delta,key=abs)
+
+    def saveparams(cell_id,simtime):
+        #Create folder for run
+        current_directory = os.getcwd()
+        print(current_directory)
+
+        folder_name=f"data\\{cell_id}\\threshold\\steady_state"
+        ssfolder = os.path.join(current_directory, folder_name,f"{simtime}")
+        if not os.path.exists(ssfolder):
+            os.makedirs(ssfolder)
+
+        filename="params.json"
+        path=os.path.join(ssfolder,filename)
+
+        params = {"temperature" : h.celsius,
+                    "dt": h.dt,  # in ms
+                    "simtime": h.tstop,  # in ms
+                    "v_init": h.v_init,  # in ms
+                    "max_dif": max_dif,
+                    "threshold" : threshold,
+                    "reached_ss": steady_state
+                }
+        
+        with open(path, "w") as file:
+            json.dump(params, file, indent=4)  # Use indent=4 for readability
+        print(f"Parameters saved to {path}")
+    
+        filev="voltages.csv"
+        pathv=os.path.join(ssfolder,filev)
+        data=pd.DataFrame({"seg_info":seg,"v_final":final_v,"v_20":voltages,"difference":delta})
+        data.to_csv(pathv)
+        print(f"Voltages saved to {pathv}")
+        
+        return ssfolder,folder_name
+
+    ssfolder,folder_name=saveparams(cell_id,simtime)
+
+    def save_steady_state(folder_name,steady_state):
+        savestate=h.SaveState()
+        steady_state_file = "steady_state.bin" 
+        path=os.path.join(folder_name,steady_state_file)
+
+        if steady_state:
+            savestate.save()
+            h_file = h.File(path)  # Create an h.File object
+            savestate.fwrite(h_file)           # Use fwrite with the h.File object
+            h_file.close()                     # Close the file
+            print(f"Steady state saved to {path}")
+
+            filev="steady_voltages.csv"
+            pathv=os.path.join(folder_name,filev)
+            data=pd.DataFrame({"seg_info":seg,"v_init":final_v})
+            data.to_csv(pathv)
+            print(f"Voltages saved to {pathv}")
+
+
+    save_steady_state(folder_name,steady_state)

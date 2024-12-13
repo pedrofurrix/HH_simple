@@ -1,3 +1,6 @@
+@echo off
+if not exist "logs" mkdir logs
+
 C:/Users/Pc/Documents/Charite/NEURON/.venv/Scripts/python.exe c:/Users/Pc/Documents/Charite/NEURON/Extracellular_test/HH_simple/run_main.py  -f 100 -v 10
 
 C:/Users/Pc/Documents/Charite/NEURON/.venv/Scripts/python.exe c:/Users/Pc/Documents/Charite/NEURON/Extracellular_test/HH_simple/run_main.py  -f 100 -v 20

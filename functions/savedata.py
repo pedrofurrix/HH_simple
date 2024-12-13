@@ -90,6 +90,7 @@ def save_rx(top_dir,Evalue,amp,cell):
     - top_dir
     - Evalue associated with the files...
     """
+    E=int(Evalue*amp)
     # Convert 'es' to a pandas DataFrame
     es_values=[seg.rx_xtra*amp for sec in cell.all for seg in sec]
     out_file=os.path.join(top_dir,"rx_values.csv")
@@ -98,16 +99,16 @@ def save_rx(top_dir,Evalue,amp,cell):
         # File exists, load existing data
         existing_data = pd.read_csv(out_file)
         # Append the new column
-        es_run = pd.DataFrame({f"Run_{Evalue*amp}": es_values})
-        existing_data[f"Run_{Evalue*amp}"] = es_run[f"Run_{Evalue*amp}"]
+        es_run = pd.DataFrame({f"Run_{E}": es_values})
+        existing_data[f"Run_{E}"] = es_run[f"Run_{E}"]
     else:
         # File does not exist, initialize with the new data
         seg=[seg for sec in cell.all for seg in sec]
-        es_init = pd.DataFrame({"seg_info":seg , f"Run_{Evalue*amp}": es_values})
+        es_init = pd.DataFrame({"seg_info":seg , f"Run_{E}": es_values})
         existing_data = es_init
 
     existing_data.to_csv(out_file, index=False)
-    print(f"'es*V' values saved to {out_file} for Run {Evalue*amp}.")
+    print(f"'es*V' values saved to {out_file} for Run {E}.")
 
 def saveplot(bot_dir,title,fig_or_ax):
     filename=f"{title}.png"
