@@ -5,10 +5,10 @@ import csv
 
 def get_main_folder(cell_id):
     currdir=os.getcwd()
-    top_dir=os.path.join(currdir,f"data\\{cell_id}")
+    top_top_dir=os.path.join(currdir,f"data\\{cell_id}")
     print(currdir)
-    print(top_dir)
-    return top_dir
+    print(top_top_dir)
+    return top_top_dir
 
 def load_results(cell_id):
     top_dir=get_main_folder(cell_id)
@@ -33,7 +33,7 @@ def load_results(cell_id):
 
                 # Extract the E value, CFreq, and max_shiftp
                 for _, row in data.iterrows():
-                    E = row["E"]
+                    E = row["EValue"]
                     CFreq = row["CFreq"]
                     max_shiftp = row["max_shiftp"]
                     max_shiftn=row["max_shiftn"]
@@ -41,6 +41,7 @@ def load_results(cell_id):
                     # Initialize row if not present
                     if E not in summary_datap:
                         summary_datap[E] = {}
+                    if E not in summary_datan:
                         summary_datan[E] = {}
 
                     # Add the max_shiftp for this CFreq
@@ -61,20 +62,26 @@ def load_results(cell_id):
     summary_dfn.to_csv(output_n)
 
     return summary_dfp,summary_dfn,top_dir
+
+def plot_results(summary_df,title="Max Shiftp",top_dir=None,evalue_threshold=None):
+     # Extract E values (index) and carrier frequencies (columns)
+    if evalue_threshold is not None:
+        summary_df = summary_df[summary_df.index < evalue_threshold]
         
-def plot_results(summary_df,title="Max Shiftp",top_dir=None):
-   # Extract E values (index) and carrier frequencies (columns)
+    summary_df = summary_df.sort_index()  # Ensure E_values are sorted
     E_values = summary_df.index.tolist()
-    CFreq_columns = summary_df.columns.tolist()
-    ax,fig=plt.subplots()
+    CFreq_columns = sorted(summary_df.columns.tolist(), key=float)  # Sort CFreq in ascending order
+    fig,ax=plt.subplots()
     for CFreq in CFreq_columns:
-        ax.plot(E_values, summary_df[CFreq], label=f"CFreq {CFreq} Hz")
+        ax.plot(E_values, summary_df[CFreq], label=f"CFreq {CFreq} Hz",marker='o')
       # Add labels, title, legend, and grid
     ax.set_xlabel("E (Electric Field Strength)", fontsize=12)
-    ax.set_ylabel(f"title", fontsize=12)
+    ax.set_ylabel(f"{title} (mV)", fontsize=12)
     ax.set_title(title, fontsize=14)
-    ax.legend(title="Carrier Frequency", fontsize=10)
+    # Position the legend outside the plot
+    ax.legend(title="Carrier Frequency", fontsize=10, loc='upper left', bbox_to_anchor=(1.05, 1))
     ax.grid(True)
+    plt.show()
 
     if top_dir:
         out_file=os.path.join(top_dir,f"{title}.png")

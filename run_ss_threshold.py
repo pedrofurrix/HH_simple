@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_dir)
 from functions.csv_max_minshift import get_folder
-CF=100
+CF=10000
 E=10
 cell_id=1
 top_dir,bot_dir=get_folder(CF,E,cell_id)

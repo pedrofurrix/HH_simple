@@ -202,12 +202,12 @@ def get_max_segs(top_dir,cell):
             segment_loc = float(seg.split('(')[1].split(')')[0])  # Example: 0.5
             # Loop through all sections in the cell
             for sec in cell.all:  # Assuming `cell.all` is a list of all sections
-                print (sec.name())
+                # print (sec.name())
                 if sec.name() == section_name:
                     # Access the segment
                     segment=sec(segment_loc)    
                     segments.append(segment)
-                    print(segment)
+                    # print(segment)
         print(segments)
         return segments
     
@@ -217,17 +217,26 @@ def get_max_segs(top_dir,cell):
 def setup_apcs(top_dir,cell):
     segments=get_max_segs(top_dir,cell)
     APCounters=[]
+    
     for segment in segments:
         ap_counter = h.APCount(segment) 
         APCounters.append(ap_counter)
     print(APCounters)
-    return segments,APCounters
+
+    recordings=[]
+    # t=h.Vector().record(h._ref_t)
+    # is_xtra=h.Vector().record(h._ref_is_xtra)
+    # recordings.extend([t,is_xtra])
+    # for segment in segments:
+    #     rec=h.Vector().record(segment._ref_v)
+    #     recordings.append(rec)
+    return segments,APCounters,recordings
 
 
 def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id):
     cell,cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
     time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq)
-    segments,APCounters=setup_apcs(top_dir,cell)
+    segments,APCounters,recordings=setup_apcs(top_dir,cell)
 
     h.dt = dt
     h.tstop = simtime
@@ -246,7 +255,6 @@ def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,d
 
     final_v=[seg.v for sec in cell.all for seg in sec]
     seg=[seg for sec in cell.all for seg in sec]
-
 
     delta = [final-v for final,v in zip(final_v, voltages)]
     # Check steady_state one time point

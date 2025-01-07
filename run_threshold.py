@@ -9,8 +9,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_dir)
 from functions.csv_max_minshift import get_folder
-freq=100
+freq=10000
 E=10
+
 cell_id=1
 top_dir,bot_dir=get_folder(freq,E,cell_id)
 
@@ -26,12 +27,14 @@ distance=1
 field_orientation=[1,0,0]
 ref_point=[0,0,0]
 ton=0
-amp=63
+amp=100
 depth=1
 dur=simtime
 modfreq=10
 thresh=0
-threshold(cell_id, simtime,v_plate,distance,field_orientation,ref_point, dt, amp, depth, freq, modfreq,ton,dur,run_id,top_dir,thresh)
+cb=False
+
+threshold(cell_id, simtime,v_plate,distance,field_orientation,ref_point, dt, amp, depth, freq, modfreq,ton,dur,run_id,top_dir,thresh,cb)
 
 # Test run
 # APCounters,cell=initialize(run_id,cell_id,v_plate,distance,field_orientation,ref_point,top_dir)

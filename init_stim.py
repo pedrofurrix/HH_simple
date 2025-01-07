@@ -79,7 +79,7 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     vrec = h.Vector().record(h._ref_vrec)  # records vrec at each timestep
     
     print("Finitialize")
-    h.finitialize(-65)
+    h.finitialize(cell.v_init)
     print("Restore steady state")
     restore_steady_state(cell_id)
     h.frecord_init()
@@ -94,13 +94,16 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     savedata.save_rx(freq_dir, v_plate,amp, cell)
 
     # file, callback = all_voltages.record_voltages(cell, e_dir)
-    file,callback=record_voltages_gpt.record_voltages_hdf5(cell,e_dir)
+    # file,callback=record_voltages_gpt.record_voltages_hdf5(cell,e_dir)
+    max_timesteps=int(simtime/dt)
+    buffer_size=100000    
+    file, callback, finalize=record_voltages_gpt.record_voltages_hdf5(cell, e_dir,max_timesteps, buffer_size)
     # save_data,callback= record_voltages_gpt.record_voltages_numpy(cell, e_dir)
 
     print("Continuerun")
     h.continuerun(simtime)
     print(f"Voltages saved to {file}")
-    file.close()
+    finalize()
     # save_data()
     print(f"Simulation Finished\n")
     
