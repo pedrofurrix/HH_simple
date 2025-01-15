@@ -10,10 +10,14 @@ def get_main_folder(cell_id,var):
     print(top_top_dir)
     return top_top_dir
 
-def load_results(cell_id,var):
+def load_results(cell_id,var,filtered=False):
     top_dir=get_main_folder(cell_id,var)
-    pos_file=os.path.join(top_dir,"maxshiftp.csv")
-    neg_file=os.path.join(top_dir,"maxshiftp.csv")
+    if not filtered:
+        pos_file=os.path.join(top_dir,"maxshiftp.csv")
+        neg_file=os.path.join(top_dir,"maxshiftn.csv")
+    else:
+        pos_file=os.path.join(top_dir,"maxshiftp_filtered.csv")
+        neg_file=os.path.join(top_dir,"maxshiftn_filtered.csv")
 
     # Initialize an empty dictionary to store results
     summary_datap = {}
@@ -25,8 +29,11 @@ def load_results(cell_id,var):
           # Check if it's a directory
         if os.path.isdir(folder_path):
             print(f"Processing folder: {folder_name}")
-            results_file=os.path.join(folder_path,"results_summary.csv")
-
+            if not filtered:
+                results_file=os.path.join(folder_path,"results_summary.csv")
+            else:
+                results_file=os.path.join(folder_path,"results_summary_filtered.csv")
+        
             if os.path.exists(results_file):
                 # Load the results summary file
                 data = pd.read_csv(results_file)
@@ -53,17 +60,15 @@ def load_results(cell_id,var):
     # Convert the dictionary to a DataFrame
     summary_dfp = pd.DataFrame(summary_datap).T
     summary_dfp.index.name = "E"
-    output_p=os.path.join(top_dir,"maxshiftp.csv")
-    summary_dfp.to_csv(output_p)
-    print(f"Summary saved to {output_p}")
+    summary_dfp.to_csv(pos_file)
+    print(f"Summary saved to {pos_file}")
     summary_dfn = pd.DataFrame(summary_datan).T
     summary_dfn.index.name = "E"
-    output_n=os.path.join(top_dir,"maxshiftn.csv")
-    summary_dfn.to_csv(output_n)
+    summary_dfn.to_csv(neg_file)
 
     return summary_dfp,summary_dfn,top_dir
 
-def plot_results(summary_df,title="Max Shiftp",top_dir=None,evalue_threshold=None):
+def plot_results(summary_df,title="Max Shiftp",top_dir=None,evalue_threshold=None,filtered=False):
      # Extract E values (index) and carrier frequencies (columns)
     if evalue_threshold is not None:
         summary_df = summary_df[summary_df.index < evalue_threshold]
@@ -84,7 +89,11 @@ def plot_results(summary_df,title="Max Shiftp",top_dir=None,evalue_threshold=Non
     plt.show()
 
     if top_dir:
-        out_file=os.path.join(top_dir,f"{title}.png")
+        if filtered:
+            out_file=os.path.join(top_dir,f"{title}_filtered.png")
+        else:
+            out_file=os.path.join(top_dir,f"{title}.png")
+            
         fig.savefig(out_file, dpi=300, bbox_inches='tight')
         print(f"Plot saved to {out_file}")
 

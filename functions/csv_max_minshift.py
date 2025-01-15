@@ -21,19 +21,27 @@ def load_voltages_csv(bot_dir):
     voltages=pd.read_csv(vfile)
     return voltages
 
-def load_voltages_hdf5(bot_dir):
+def load_voltages_hdf5(bot_dir,filtered=False):
     """
     
     Load voltage data from HDF5 file.
 
     """
+    if not filtered:
+        vfile = os.path.join(bot_dir, "run_voltages.h5")
+        with h5py.File(vfile, "r") as file:
+            # Read time and voltages
+            time = file["time"][:]
+            voltages = file["voltages"][:]
+            segment_names = file["voltages"].attrs["segment_names"]
 
-    vfile = os.path.join(bot_dir, "run_voltages.h5")
-    with h5py.File(vfile, "r") as file:
-        # Read time and voltages
-        time = file["time"][:]
-        voltages = file["voltages"][:]
-        segment_names = file["voltages"].attrs["segment_names"]
+    else:
+        vfile=os.path.join(bot_dir,"filtered_voltages.h5")
+        with h5py.File(vfile, "r") as file:
+            # Read time and voltages
+            time = file["time"][:]
+            voltages = file["filtered_voltages"][:]
+            segment_names = file["filtered_voltages"].attrs["segment_names"]
     
     # Create a DataFrame for easier handling
     df = pd.DataFrame(voltages, columns=segment_names)
@@ -41,12 +49,12 @@ def load_voltages_hdf5(bot_dir):
     return df
 
 
-def load_params(bot_dir): #Load paramsssssssss (get them into a format where I can easily extract them.., ) - json
+def load_params(param_dir): #Load paramsssssssss (get them into a format where I can easily extract them.., ) - json
     '''
     Loads parameters - from json
     '''
     filename="params.json"
-    path = os.path.join(bot_dir, filename)
+    path = os.path.join(param_dir, filename)
     if not os.path.exists(path):
         raise FileNotFoundError(f"The parameters file does not exist at {path}")
     # Load the JSON file
@@ -58,11 +66,12 @@ def load_params(bot_dir): #Load paramsssssssss (get them into a format where I c
     # Return the parameters
     return simparams, stimparams
 
-def cmax_shift(bot_dir,top_dir, cell=None):
+
+def cmax_shift(bot_dir,top_dir,param_dir,cell=None, filtered=False):
     # voltages=load_voltages_csv(bot_dir)
-    voltages=load_voltages_hdf5(bot_dir)
+    voltages=load_voltages_hdf5(bot_dir,filtered)
     headers=voltages.drop(columns=["t"]).columns.to_list()
-    simparams, stimparams=load_params(bot_dir)
+    simparams, stimparams=load_params(param_dir)
 
     num_seg=len(voltages.iloc[0,1:]) #iterate through all but the column that has the time
     v_init=voltages.iloc[0,1:].to_list()
@@ -122,8 +131,12 @@ def cmax_shift(bot_dir,top_dir, cell=None):
         data_pd=pd.DataFrame([data])
         data_pd.to_csv(out_file,index=False)
 
-        top_file=os.path.join(top_dir, "results_summary.csv")
-        results_df = pd.DataFrame([results])
+        if filtered:
+            top_file=os.path.join(top_dir, "results_summary_filtered.csv")
+            results_df = pd.DataFrame([results])
+        else:
+            top_file=os.path.join(top_dir, "results_summary.csv")
+            results_df = pd.DataFrame([results])
 
         if os.path.exists(top_file):
             # If file exists, append the new results without writing the header
@@ -158,8 +171,8 @@ def plot_show(bot_dir,results):
     ax3.set_title(title3)  # Optional: add title to the plot
     return fig3
 
-def plot_voltage(bot_dir,results):
-    voltages=load_voltages_hdf5(bot_dir)
+def plot_voltage(bot_dir,results,filtered):
+    voltages=load_voltages_hdf5(bot_dir,filtered)
 
     t=voltages["t"]
 
@@ -236,13 +249,17 @@ def plot_voltage(bot_dir,results):
 
     plt.close()
 
-def get_folder(CF,E,cell_id,var):
+def get_folder(CF,E,cell_id,var,filtered=False):
     currdir=os.getcwd()
     top_dir=os.path.join(currdir,f"data\\{cell_id}\\{var}\\{CF}Hz")
-    bot_dir=os.path.join(top_dir,f"{E}Vm")
+    param_dir=os.path.join(top_dir,f"{E}Vm")
+    if not filtered:
+        bot_dir=param_dir
+    else:
+        bot_dir=os.path.join(param_dir,"filtered")
     print(currdir)
     print(top_dir)
     print(bot_dir)
     
-    return top_dir, bot_dir
+    return top_dir, bot_dir, param_dir
 

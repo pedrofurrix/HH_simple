@@ -16,6 +16,7 @@ start=time.time()
 # CF=[100]
 # E=[90]
 cell_id=1
+var="cfreq"
 # for freq in CF:
 #     for e in E:
 #         top_dir,bot_dir=csv_max_minshift.get_folder(freq,e,cell_id)
@@ -37,11 +38,11 @@ cell_id=1
 #     low_pass.filter_data(CF,e,cell_id,cutoff,order=order)
 
 # # low_pass.test_fake_data()
-
+filter=True
 import functions.process_results as pr
-summary_dfp,summary_dfn,top_dir=pr.load_results(cell_id)
-pr.plot_results(summary_dfp,title="Max Shiftp",top_dir=top_dir)
-pr.plot_results(summary_dfn,title="Max Shiftn",top_dir=top_dir)
+summary_dfp,summary_dfn,top_dir=pr.load_results(cell_id,var,filtered=filter)
+pr.plot_results(summary_dfp,title="Max Shiftp",top_dir=top_dir,filtered=filter)
+pr.plot_results(summary_dfn,title="Max Shiftn",top_dir=top_dir,filtered=filter)
 
 end=time.time()
 print(f"Time passed:{end-start} seconds")
