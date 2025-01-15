@@ -13,6 +13,10 @@ import json
 import h5py
 
 def load_voltages_csv(bot_dir):
+    '''
+    Loads voltages file - from the Electric field folder
+    '''
+    
     vfile=os.path.join(bot_dir,"run_voltages.csv")
     voltages=pd.read_csv(vfile)
     return voltages
@@ -20,7 +24,7 @@ def load_voltages_csv(bot_dir):
 def load_voltages_hdf5(bot_dir):
     """
     
-    Load voltage data from an HDF5 file.
+    Load voltage data from HDF5 file.
 
     """
 
@@ -38,7 +42,9 @@ def load_voltages_hdf5(bot_dir):
 
 
 def load_params(bot_dir): #Load paramsssssssss (get them into a format where I can easily extract them.., ) - json
-    
+    '''
+    Loads parameters - from json
+    '''
     filename="params.json"
     path = os.path.join(bot_dir, filename)
     if not os.path.exists(path):
@@ -130,6 +136,28 @@ def cmax_shift(bot_dir,top_dir, cell=None):
 
     return max_shift, max_v, min_v, results
 
+def plot_show(bot_dir,results):
+    voltages=load_voltages_hdf5(bot_dir)
+
+    t=voltages["t"]
+    v_maxp_index=results["maxp_index"]
+    v_maxn_index=results["maxn_index"]
+    vmaxp=voltages.iloc[:,v_maxp_index+1]
+    vmaxn=voltages.iloc[:,v_maxn_index+1]
+    segmaxp=results["maxp_seg"]
+    segmaxn=results["maxn_seg"]
+
+    # Plot Max both
+    fig3,ax3=plt.subplots()
+    title3=("Membrane potential over time - Maxshift")
+    ax3.plot(t, vmaxp,label=f"maxp_shift_{segmaxp}")
+    ax3.plot(t, vmaxn,label=f"maxn_shift_{segmaxn}")
+    ax3.set_xlabel("time (ms)")  # Correct method to set labels
+    ax3.set_ylabel("Membrane potential (mV)")
+    ax3.legend()
+    ax3.set_title(title3)  # Optional: add title to the plot
+    return fig3
+
 def plot_voltage(bot_dir,results):
     voltages=load_voltages_hdf5(bot_dir)
 
@@ -156,7 +184,7 @@ def plot_voltage(bot_dir,results):
     # plt.show()
 
     #Plot Max Negative
-    
+
     v_max_index=results["maxn_index"]
     v_min_index=results["minn_index"]
     vmaxn=voltages.iloc[:,v_max_index+1]
@@ -208,9 +236,9 @@ def plot_voltage(bot_dir,results):
 
     plt.close()
 
-def get_folder(CF,E,cell_id):
+def get_folder(CF,E,cell_id,var):
     currdir=os.getcwd()
-    top_dir=os.path.join(currdir,f"data\\{cell_id}\\{CF}Hz")
+    top_dir=os.path.join(currdir,f"data\\{cell_id}\\{var}\\{CF}Hz")
     bot_dir=os.path.join(top_dir,f"{E}Vm")
     print(currdir)
     print(top_dir)

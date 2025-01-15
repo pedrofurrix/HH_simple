@@ -128,7 +128,7 @@ def simpleplaysin(amp,dt,tstop,freq):
 #Variable start and end time for stimulation, defined by ton and dur
 #depth is between 0 and 1, with 1 being 100% mod depth
 #modfreq is in Hz
-def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq):
+def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp=False,ramp_duration=None,tau=None):
   times=np.arange(0,simtime+dt,dt)
   # 1000 is a factor because dt is in ms and freq in Hz
   #added -ton so that it starts at 0
@@ -141,6 +141,10 @@ def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq):
   #Making it so that while time<ton and time>ton+dur, stim value=0
   stim[times < ton] = 0
   stim[times > (ton + dur)] = 0
+  if ramp:
+    current=generate_ramp_current(times, ramp_duration,dt)
+    # current=generate_exponential_ramp_current(times, ramp_duration, tau,dt)
+    stim=stim*current
 
   t=h.Vector(times)
   stim1=h.Vector(stim)
@@ -169,3 +173,55 @@ def ampmodulation_wiki(ton,amp,depth,dt,dur,simtime,freq,modfreq):
   stim1=h.Vector(stim)
   stim1.play(h._ref_is_xtra,t,0)
   return t,stim1
+
+def generate_ramp_current(times, ramp_duration,dt):
+    """
+    Generate a stimulation current that ramps up and holds steady.
+
+    Parameters:
+        duration (float): Total duration of the simulation in ms.
+        dt (float): Time step in ms.
+        ramp_duration (float): Duration of the ramp-up phase in ms.
+        max_current (float): Maximum current value (nA).
+
+    Returns:
+        np.array: Array of stimulation current values.
+    """
+    
+    current = np.zeros_like(times)     # Initialize current array
+
+    # Ramp phase
+    current[times<=ramp_duration] = np.linspace(0, 1, int(ramp_duration/dt)+1)
+    
+    # Steady phase
+    current[times>ramp_duration] = 1
+
+    return current
+
+
+def generate_exponential_ramp_current(times, ramp_duration, tau,dt):
+    """
+    Generate an exponentially ramping stimulation current that stabilizes at a maximum value.
+
+    Parameters:
+        duration (float): Total duration of the simulation in ms.
+        dt (float): Time step in ms.
+        ramp_duration (float): Duration of the ramp-up phase in ms.
+        max_current (float): Maximum current value (nA).
+        tau (float): Time constant for the exponential ramp (ms).
+
+    Returns:
+        np.array: Array of stimulation current values.
+    """
+
+    current = np.zeros_like(times)     # Initialize current array
+    
+    # Exponential ramp phase
+    # ramp_end_index = int(ramp_duration / dt)
+    # ramp_time = times[:ramp_end_index]  # Time points during ramp
+    ramp_time = times[times <= ramp_duration]
+    current[times <= ramp_duration] = (1 - np.exp(-ramp_time / tau))    
+    # Steady phase
+    current[times>ramp_duration] = 1  # Maintain max current after ramp duration
+    
+    return current

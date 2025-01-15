@@ -8,13 +8,15 @@ from neuron import h
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_dir)
+
 from functions.csv_max_minshift import get_folder
-CF=10000
+CF=2000
 E=10
 cell_id=1
-top_dir,bot_dir=get_folder(CF,E,cell_id)
+var="cfreq"
+top_dir,bot_dir=get_folder(CF,E,cell_id,var)
 
-from ss_runfile import run_threshold
+from init_ss import run_threshold
 simtime=1000
 dt=0.1
 celsius=36
@@ -31,5 +33,8 @@ dur=simtime
 freq=0
 modfreq=0
 
-run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id)
+ramp=False
+ramp_duration=0
+tau=None
+run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var,ramp,ramp_duration,tau)
 

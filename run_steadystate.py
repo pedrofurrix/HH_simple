@@ -6,8 +6,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_dir)
 
-import ss_runfile
-simtime=100
+import init_ss as init_ss
+simtime=1000
 dt=0.1
 celsius=36
 run_id=0
@@ -22,6 +22,8 @@ depth=1
 dur=simtime
 freq=0
 modfreq=0
+ramp=False
+ramp_duration=0
+tau=None
 
-
-ss_runfile.get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq)
+init_ss.get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)

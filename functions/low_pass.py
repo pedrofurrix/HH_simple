@@ -21,9 +21,9 @@ def get_results(freq_dir):
 
 
 
-def filter_data(CF,E,cell_id,cutoff=20,results=None,order=2):
+def filter_data(CF,E,cell_id,cutoff=20,results=None,var="cfreq",order=2,save=True,plot=True):
 
-    freq_dir, e_dir=get_folder(CF,E,cell_id)
+    freq_dir, e_dir=get_folder(CF,E,cell_id,var)
     voltages=load_voltages_hdf5(e_dir)
     simparams, stimparams=load_params(e_dir)
 
@@ -33,19 +33,23 @@ def filter_data(CF,E,cell_id,cutoff=20,results=None,order=2):
 
     if results==None:
         results=get_results(freq_dir)
+        maxpseg = results[results['EValue'] == E]['maxp_seg'].values[0]
+        maxnseg = results[results['EValue'] == E]['maxn_seg'].values[0]
+    else:
+        maxpseg=results["maxp_seg"]
+        maxnseg=results["maxn_seg"]
 
-    maxpseg = results[results['EValue'] == E]['maxp_seg'].values[0]
-    maxnseg = results[results['EValue'] == E]['maxn_seg'].values[0]
     print(f"maxpseg={maxpseg}")
     print(f"maxnseg={maxnseg}")
     t=voltages["t"].to_list()
     maxpvoltages = voltages[maxpseg].to_list()
     maxnvoltages = voltages[maxnseg].to_list()
+
     # print(f"Length of maxpvoltages: {len(maxpvoltages)}")
     # print(f"Length of maxnvoltages: {len(maxnvoltages)}")
 
 
-    print(f"Raw maxpvoltages: {maxpvoltages[:10]}")
+    # print(f"Raw maxpvoltages: {maxpvoltages[:10]}")
     # Filtered hilbert
     analytic_p,envelope_p=hilbert_transform(maxpvoltages)
     filtered_maxp=butter_lowpass_filter(maxpvoltages, cutoff, fs, order)
@@ -59,53 +63,56 @@ def filter_data(CF,E,cell_id,cutoff=20,results=None,order=2):
     filtered_file=os.path.join(e_dir,"filtered")
     if not os.path.exists(filtered_file):
         os.makedirs(filtered_file)
-    
-    # Save the data
-    data={
-        "t":t,
-        "maxpvoltages":maxpvoltages,
-        "filtered_maxp":filtered_maxp,
-        # Added these 3 after
-        "analytic_p": analytic_p,
-        "envelope_p":envelope_p,
-        "filtered_maxpenvelope":filtered_maxpenvelope,
-        "maxnvoltages":maxnvoltages,
-        "filtered_maxn":filtered_maxn,
-        # Added these 3 after
-        "analytic_n": analytic_n,
-        "envelope_n":envelope_n,
-        "filtered_maxnenvelope":filtered_maxnenvelope,
-    }
-    out_file=os.path.join(filtered_file,f"filtered_data{order}.csv")
-    data_pd=pd.DataFrame([data])
-    data_pd.to_csv(out_file,index=False)
-    print(f"Filtered data saved to {out_file}")
 
-    # Save params
-    params = {   
-        "dt":dt,
-        "simtime":simtime,
-        "cutoff":cutoff,
-        "fs":fs,
-        "order":order
-    }
+    if save:
+        # Save the data
+        data={
+            "t":t,
+            "maxpvoltages":maxpvoltages,
+            "filtered_maxp":filtered_maxp,
+            # Added these 3 after
+            "analytic_p": analytic_p,
+            "envelope_p":envelope_p,
+            "filtered_maxpenvelope":filtered_maxpenvelope,
+            "maxnvoltages":maxnvoltages,
+            "filtered_maxn":filtered_maxn,
+            # Added these 3 after
+            "analytic_n": analytic_n,
+            "envelope_n":envelope_n,
+            "filtered_maxnenvelope":filtered_maxnenvelope,
+        }
+        out_file=os.path.join(filtered_file,f"filtered_data{order}.csv")
+        data_pd=pd.DataFrame([data])
+        data_pd.to_csv(out_file,index=False)
+        print(f"Filtered data saved to {out_file}")
 
-    path=os.path.join(filtered_file,f"params{order}.json")
-    with open(path, "w") as file:
-        json.dump(params, file, indent=4)  # Use indent=4 for readability
+        # Save params
+        params = {   
+            "dt":dt,
+            "simtime":simtime,
+            "cutoff":cutoff,
+            "fs":fs,
+            "order":order
+        }
 
-    print(f"Parameters saved to {path}")
+        path=os.path.join(filtered_file,f"params{order}.json")
+        with open(path, "w") as file:
+            json.dump(params, file, indent=4)  # Use indent=4 for readability
 
-    plot_filtered(t,maxpseg,maxpvoltages,filtered_maxp,filtered_file,order,info="maxp")
-    plot_filtered(t,maxnseg,maxnvoltages,filtered_maxn,filtered_file,order,info="maxn")
-    plot_hilbert(t,maxpseg,maxpvoltages,envelope_p,filtered_maxpenvelope,filtered_file,order,info="maxp")
-    plot_hilbert(t,maxnseg,maxnvoltages,envelope_n,filtered_maxnenvelope,filtered_file,order,info="maxn")
+        print(f"Parameters saved to {path}")
 
-    plot_bode(cutoff, fs, order,filtered_file)
-    return maxpvoltages,maxnvoltages
+    if plot:
+        plot_filtered(t,maxpseg,maxpvoltages,filtered_maxp,filtered_file,order,info="maxp",save=save)
+        plot_filtered(t,maxnseg,maxnvoltages,filtered_maxn,filtered_file,order,info="maxn",save=save)
+        plot_hilbert(t,maxpseg,maxpvoltages,envelope_p,filtered_maxpenvelope,filtered_file,order,info="maxp",save=save)
+        plot_hilbert(t,maxnseg,maxnvoltages,envelope_n,filtered_maxnenvelope,filtered_file,order,info="maxn",save=save)
+        plot_bode(cutoff, fs, order,filtered_file,save)
+        plot_onlyfiltered(t,filtered_maxp,filtered_file,order,info="filter_maxp",save=save)
+
+    return maxpvoltages,maxnvoltages,filtered_maxp,filtered_maxn,filtered_file,t
 
 
-def plot_filtered(t,maxseg,maxvoltage,filteredv,file,order,info=None):
+def plot_filtered(t,maxseg,maxvoltage,filteredv,file,order,info=None,save=False):
     fig,ax=plt.subplots()
     ax.plot(t,maxvoltage,label=f"Unfiltered")
     ax.plot(t,filteredv,label=f"Filtered")
@@ -115,9 +122,10 @@ def plot_filtered(t,maxseg,maxvoltage,filteredv,file,order,info=None):
     title=f"Filtered response_{order}_{info}"
     ax.set_title(title)
     plt.show()
-    saveplot(file,title,fig)
+    if save:
+        saveplot(file,title,fig)
 
-def plot_hilbert(t,maxseg,maxvoltage,envelope,filtered_envelope,file,order,info=None):
+def plot_hilbert(t,maxseg,maxvoltage,envelope,filtered_envelope,file,order,info=None,save=False):
     fig,ax=plt.subplots()
     ax.plot(t,maxvoltage,label=f"Unfiltered")
     ax.plot(t,envelope,label=f"Envelope")
@@ -128,7 +136,8 @@ def plot_hilbert(t,maxseg,maxvoltage,envelope,filtered_envelope,file,order,info=
     title=f"Hilbert Filtered response_{order}_{info}"
     ax.set_title(title)
     plt.show()
-    saveplot(file,title,fig)    
+    if save:
+        saveplot(file,title,fig)    
 
 
 def butter_lowpass_filter(data, cutoff, fs,order):
@@ -154,7 +163,7 @@ def butter_lowpass_filter(data, cutoff, fs,order):
     return filtered_data
 
 
-def plot_bode(cutoff, fs, order,save_dir=None):
+def plot_bode(cutoff, fs, order,save_dir=None,save=False):
     """
     Plots the Bode magnitude and phase response of a Butterworth filter.
 
@@ -195,8 +204,9 @@ def plot_bode(cutoff, fs, order,save_dir=None):
 
     # Save the plot if a directory is provided
     if save_dir:
-        title = f"Bode_Plot_Cutoff_{cutoff}_Order_{order}"
-        saveplot(save_dir, title, fig)
+        if save:
+            title = f"Bode_Plot_Cutoff_{cutoff}_Order_{order}"
+            saveplot(save_dir, title, fig)
 
     plt.show()
     print(f"Bode plot created for a {order}-order Butterworth filter with cutoff frequency {cutoff} Hz.")
@@ -251,3 +261,15 @@ def hilbert_transform(signal):
     analytic_signal = hilbert(signal-average)
     envelope = np.abs(analytic_signal)+average
     return analytic_signal,envelope
+
+def plot_onlyfiltered(t,filteredv,file=None,order=2,info=None,save=False):
+    fig,ax=plt.subplots()
+    ax.plot(t,filteredv,label=f"Filtered")
+    ax.set_xlabel("Time (ms)")
+    ax.set_ylabel("Membrane Potential (mV)")
+    ax.legend()
+    title=f"Filtered response_{order}_{info}"
+    ax.set_title(title)
+    plt.show()
+    if save:
+        saveplot(file,title,fig)

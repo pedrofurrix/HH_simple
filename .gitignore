@@ -7,4 +7,10 @@
 # Ignore object files
 *.o
 
+# Ignore batch files
+*.bat
+
+# Ignore sh files
+*.sh
+
 __pycache__/

@@ -22,10 +22,10 @@ def record_voltages(cell,e_dir):
 
     return file,callback
 
-def custom_threshold(cell,cell_id,freq,segments):
+def custom_threshold(cell,cell_id,freq,segments,var):
     currdir=os.getcwd()
     print(currdir)
-    folder=f"data\\{cell_id}\\threshold\\{freq}Hz"
+    folder=f"data\\{cell_id}\\{var}\\threshold\\{freq}Hz"
     path=os.path.join(currdir,folder)
     print(path)
     

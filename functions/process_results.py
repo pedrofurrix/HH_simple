@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 import os
 import csv
 
-def get_main_folder(cell_id):
+def get_main_folder(cell_id,var):
     currdir=os.getcwd()
-    top_top_dir=os.path.join(currdir,f"data\\{cell_id}")
+    top_top_dir=os.path.join(currdir,"data",str(cell_id),str(var))
     print(currdir)
     print(top_top_dir)
     return top_top_dir
 
-def load_results(cell_id):
-    top_dir=get_main_folder(cell_id)
+def load_results(cell_id,var):
+    top_dir=get_main_folder(cell_id,var)
     pos_file=os.path.join(top_dir,"maxshiftp.csv")
     neg_file=os.path.join(top_dir,"maxshiftp.csv")
 

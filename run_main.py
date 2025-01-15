@@ -2,7 +2,7 @@ import numpy as np
 import os
 import gc
 from neuron import h
-
+import time
 
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -10,6 +10,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 import init_stim
 
+start=time.time()
+
+var="test_ramping"
 simtime=1000
 dt=0.001
 celsius=36
@@ -20,12 +23,14 @@ distance=1
 field_orientation=[1,0,0]
 ref_point=[0,0,0]
 ton=0
-amp=90
+amp=100
 depth=1
 dur=simtime
-freq=100
+freq=2000
 modfreq=10
-
+ramp=True
+ramp_duration=300
+tau=None
 
 
 
@@ -34,7 +39,7 @@ try:
     print(f"Running simulation for freq={freq}, v_plate={amp}")
     e_dir, t, is_xtra, vrec, soma_v, dend_v, cell = init_stim.run_sim(
         simtime, dt, celsius, run_id, cell_id, v_plate, distance,
-        field_orientation, ref_point, ton, amp, depth, dur, freq, modfreq)
+        field_orientation, ref_point, ton, amp, depth, dur, freq, modfreq,var,ramp,ramp_duration,tau)
     print(f"Simulation completed for freq={freq}, v_plate={amp}")
     init_stim.save_plots(e_dir, t, is_xtra, vrec, soma_v, dend_v)
 except Exception as e:
@@ -43,5 +48,8 @@ finally:
     # Cleanup to free resources
     h("forall delete_section()")  # Delete all sections
     gc.collect()  # Force garbage collection
+
     
-    
+end=time.time()
+print(f"The time of execution of above program is : {end-start} s")
+print(f"The time of execution of above program is : {(end-start)/60} mins")

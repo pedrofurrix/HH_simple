@@ -18,10 +18,12 @@ import init_stim
 parser = ArgumentParser(description="Run a NEURON simulation with specified parameters.")
 parser.add_argument("-f", "--freq", type=float, required=True, help="Frequency (Hz) for the simulation")
 parser.add_argument("-v", "--voltage", type=float, required=True, help="Voltage (mV) for the simulation")
+parser.add_argument("-d", "--depth", type=float, required=False, default=1.0, help="Modulation depth (0-1)")
+parser.add_argument("-m", "--modfreq", type=float, required=True, help="Modulation Frequency (Hz)")
 
 args = parser.parse_args()
 
-
+var="modfreq"
 simtime=1000
 dt=0.001
 celsius=36
@@ -33,27 +35,33 @@ field_orientation=[1,0,0]
 ref_point=[0,0,0]
 ton=0
 # amp=1
-depth=1
+# depth=1
 dur=simtime
 # freq=500
-modfreq=10
+# modfreq=10
+ramp=False
+ramp_duration=None
+tau=None
 
 # Get command-line arguments
 freq = args.freq
 amp = args.voltage
+modfreq=args.modfreq
+depth= args.depth
+
 
 # for freq in CFreqs:
 #     for amp in v_values:
 
 try:
-    print(f"Running simulation for freq={freq}, v_plate={amp}")
+    print(f"Running simulation for modfreq={modfreq}, v_plate={amp}")
     e_dir, t, is_xtra, vrec, soma_v, dend_v, cell = init_stim.run_sim(
         simtime, dt, celsius, run_id, cell_id, v_plate, distance,
-        field_orientation, ref_point, ton, amp, depth, dur, freq, modfreq)
+        field_orientation, ref_point, ton, amp, depth   , dur, freq, modfreq,var,ramp,ramp_duration,tau)
     print(f"Simulation completed for freq={freq}, v_plate={amp}")
     init_stim.save_plots(e_dir, t, is_xtra, vrec, soma_v, dend_v)
 except Exception as e:
-    print(f"Error during simulation for freq={freq}, v_plate={amp}: {e}")
+    print(f"Error during simulation for modfreq={modfreq}, v_plate={amp}: {e}")
 finally:
     # Cleanup to free resources
     h("forall delete_section()")  # Delete all sections

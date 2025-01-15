@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import json
 
-h.load_file("stdrun.hoc")# Get the directory of the current script
-currdir = os.getcwd()
+h.load_file("stdrun.hoc")
+currdir = os.getcwd()# Get the directory of the current script
 
 # Load Mechanisms
 path = os.path.join(currdir, "mechanisms", "nrnmech.dll")
@@ -47,8 +47,8 @@ def init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point):
 
     return cell, cell_name
 
-def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq):
-    time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq)
+def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau):
+    time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp,ramp_duration,tau)
     return time,stim1
 
 def restore_steady_state(cell_id):
@@ -66,11 +66,13 @@ def restore_steady_state(cell_id):
     h.t = 0
     print(f"Steady state restored from {path}, and time reset to {h.t} ms")
 
-def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq):
+def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,var,ramp=False,ramp_duration=None,tau=None):
+    
     print("Init cell")
     cell, cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
+
     print("Init setting stim")
-    time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq)
+    time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
 
     t=h.Vector().record(h._ref_t)
     is_xtra=h.Vector().record(h._ref_is_xtra)
@@ -80,8 +82,10 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     
     print("Finitialize")
     h.finitialize(cell.v_init)
+
     print("Restore steady state")
     restore_steady_state(cell_id)
+
     h.frecord_init()
     h.dt = dt
     h.tstop = simtime
@@ -89,14 +93,14 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
 
     simparams=[dt,simtime,cell_id,cell_name]
     stimparams=[v_plate,ton,dur,freq,depth,modfreq,field_orientation,amp,distance,ref_point]
-    freq_dir, e_dir = savedata.saveparams(run_id, simparams, stimparams)
-    print("not here")
-    savedata.save_rx(freq_dir, v_plate,amp, cell)
 
+    freq_dir, e_dir = savedata.saveparams(run_id, simparams, stimparams,var)
+    savedata.save_rx(freq_dir, v_plate,amp, cell)
     # file, callback = all_voltages.record_voltages(cell, e_dir)
     # file,callback=record_voltages_gpt.record_voltages_hdf5(cell,e_dir)
+
     max_timesteps=int(simtime/dt)
-    buffer_size=100000    
+    buffer_size=10000
     file, callback, finalize=record_voltages_gpt.record_voltages_hdf5(cell, e_dir,max_timesteps, buffer_size)
     # save_data,callback= record_voltages_gpt.record_voltages_numpy(cell, e_dir)
 
@@ -109,7 +113,6 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     
 
     savedata.savedata(e_dir, t, is_xtra, vrec)
-
     print("Finished with success")
 
     return e_dir,t,is_xtra,vrec,soma_v,dend_v,cell

@@ -6,14 +6,16 @@ import numpy as np
 import pandas as pd
 import json
 import csv
+import sys
 
 h.load_file("stdrun.hoc")# Get the directory of the current script
 currdir = os.getcwd()
 
-# Load Mechanisms
-path = os.path.join(currdir, "mechanisms", "nrnmech.dll")
-print(path)
-h.nrn_load_dll(path)
+# # Load Mechanisms
+# path = os.path.join(currdir, "mechanisms", "nrnmech.dll")
+# print(path)
+# h.nrn_load_dll(path)
+
 run = 0
 
 # Import functions
@@ -50,13 +52,13 @@ def init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point):
 
     return cell, cell_name
 
-def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq):
-    time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq)
+def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau):
+    time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp,ramp_duration,tau)
     return time,stim1
 
-def restore_steady_state(cell_id):
+def restore_steady_state(cell_id,var):
     currdir=os.getcwd()
-    path = os.path.join(currdir, f"data\\{cell_id}\\threshold\\steady_state\\steady_state.bin")
+    path = os.path.join(currdir, f"data\\{cell_id}\\{var}\\threshold\\steady_state\\steady_state.bin")
     savestate = h.SaveState()
     h_file = h.File(path)
     print(f"Getting steady state from {path}")
@@ -70,9 +72,9 @@ def restore_steady_state(cell_id):
     print(f"Steady state restored from {path}, and time reset to {h.t} ms")
 
 
-def add_callback(cell,cell_id,freq,segments):
+def add_callback(cell,cell_id,freq,segments,var):
     from functions.all_voltages import custom_threshold
-    file,callback=custom_threshold(cell,cell_id,freq,segments)
+    file,callback=custom_threshold(cell,cell_id,freq,segments,var)
     return file, callback
 
 
@@ -145,16 +147,17 @@ def initialize(run_id,cell_id,v_plate,distance,field_orientation,ref_point,top_d
     # writer2 = csv.writer(file1)
     # header= ["Run"] + [seg for seg in segments]
     # writer2.writerow(header)
+    
 
     print("Simulation Initialized")
     return APCounters,cell,recordings,segments
 
-def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,cb):
-    time,stim1= setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq)
+def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,cb,var,ramp,ramp_duration,tau):
+    time,stim1= setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
 
     print(f"Set stim with amplitude: {amp} V/m")
     h.finitialize(cell.v_init)
-    restore_steady_state(cell_id)
+    restore_steady_state(cell_id,var)
 
     print("Before Stim")
     print(any(apc.n>0 for apc in APCounters))
@@ -166,7 +169,7 @@ def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounte
    
     if cb:
         print("Adding Callback")
-        file,callback=add_callback(cell,cell_id,freq,segments)
+        file,callback=add_callback(cell,cell_id,freq,segments,var)
 
     print(f"Continue Run {simtime}")
     h.continuerun(simtime)
@@ -182,7 +185,10 @@ def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounte
     # ax,fig,title=plot_v(recordings,segments,freq,amp)
     return any1
 
-def threshold(cell_id, simtime, v_plate, distance, field_orientation, ref_point, dt, amp, depth, freq, modfreq, ton, dur, run_id, top_dir, thresh=0,cb=False):
+def threshold(cell_id, simtime, v_plate, distance, field_orientation, 
+              ref_point, dt, amp, depth, freq, modfreq, ton, dur, 
+              run_id, top_dir, thresh=0,cb=False,var="cfreq",ramp=False,ramp_duration=0,tau=None):
+    
     low = 0
     high = 1e6
     APCounters, cell,recordings,segments = initialize(run_id, cell_id, v_plate, distance, field_orientation, ref_point, top_dir,thresh,freq)
@@ -195,7 +201,8 @@ def threshold(cell_id, simtime, v_plate, distance, field_orientation, ref_point,
     while low == 0 or high == 1e6:
         print(f"Searching bounds: low={low}, high={high}, amp={amp}")
 
-        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb):
+        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb,var,ramp,ramp_duration,tau):
+         
             high = amp
             amp /= 2  # Reduce amplitude
         else:
@@ -222,7 +229,7 @@ def threshold(cell_id, simtime, v_plate, distance, field_orientation, ref_point,
     while (high - low) > epsilon:
         print(f"Binary search: low={low}, high={high}, amp={amp}")
 
-        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb):
+        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb,var,ramp,ramp_duration,tau):
             high = amp
         else:
             low = amp
@@ -237,24 +244,54 @@ def threshold(cell_id, simtime, v_plate, distance, field_orientation, ref_point,
             break
     
     cb=True
-    threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb)
-    # saveplot(title,fig,cell_id)
-    savethresh(amp, freq, cell_id)
+    threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb, var,ramp,ramp_duration,tau)
+    # saveplot(title,fig,cell_id,var)
+    savethresh(amp, freq, cell_id,var)
     print([apc.n for apc in APCounters])
     return high
 
-def savethresh(amp,freq,cell_id):
+def savethresh(amp,freq,cell_id,var):
     currdir=os.getcwd()
-    path = os.path.join(currdir, f"data\\{cell_id}\\threshold\\thresholds.csv")
+    path = os.path.join(currdir, f"data\\{cell_id}\\{var}\\threshold\\thresholds.csv")
+
     file_exists = os.path.exists(path)
-     # Open the file in append mode
-    with open(path, mode="a", newline="") as file:
+
+    # Initialize a list to store the updated data
+    updated_data = []
+    freq_exists = False  # Flag to check if the frequency exists in the file
+
+    # Check if the file exists
+    if file_exists:
+        # Read the existing file
+        with open(path, mode="r", newline="") as file:
+            reader = csv.reader(file)
+            header = next(reader, None)  # Read the header (if it exists)
+            
+            # Add the header to updated_data
+            if header:
+                updated_data.append(header)
+
+            # Iterate through the rows and update the amp value if the freq matches
+            for row in reader:
+                if len(row) >= 2 and row[0] == str(freq):  # Match the frequency
+                    updated_data.append([freq, amp])  # Replace the amp value
+                    freq_exists = True
+                else:
+                    updated_data.append(row)  # Keep the row unchanged
+    # If the file doesn't exist, create it and add headers
+    else:
+        updated_data.append([var, "Threshold"])  # Add header to new file
+
+     # If the frequency doesn't exist, add it as a new row
+    if not freq_exists:
+        if not updated_data: # If the file was empty, add the header
+            updated_data.append([var, "Threshold"])
+        updated_data.append([freq, amp])
+    
+    # Write the updated data back to the file
+    with open(path, mode="w", newline="") as file:
         writer = csv.writer(file)
-        # Write the header only if the file is new
-        if not file_exists:
-            writer.writerow(["Carrier_Frequency", "Threshold"])
-        # Append the new data
-        writer.writerow([freq, amp])
+        writer.writerows(updated_data)  # Write all rows back to the file
     print(amp)
     print(f"Threshold for frequency {freq} saved to {path}")
     
@@ -272,7 +309,7 @@ def plot_v(recordings,segments,freq,amp):
 
     return ax,fig,title1
 
-def saveplot(title,fig_or_ax,cell_id):
+def saveplot(title,fig_or_ax,cell_id,var):
     filename=f"{title}.png"
     if isinstance(fig_or_ax, plt.Axes):
         # If it's an Axes object, get the Figure from the Axes
@@ -283,7 +320,7 @@ def saveplot(title,fig_or_ax,cell_id):
     else:
         raise TypeError("Input must be a matplotlib Figure or Axes object.")
     
-    path=os.path.join(f"data\\{cell_id}\\threshold",filename)
+    path=os.path.join(f"data\\{cell_id}\\{var}\\threshold",filename)
 
     fig.savefig(path, dpi=300, bbox_inches='tight')
     print(f"Successfully saved as {filename}")
