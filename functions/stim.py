@@ -128,7 +128,7 @@ def simpleplaysin(amp,dt,tstop,freq):
 #Variable start and end time for stimulation, defined by ton and dur
 #depth is between 0 and 1, with 1 being 100% mod depth
 #modfreq is in Hz
-def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp=False,ramp_duration=None,tau=None):
+def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp=False,ramp_duration=0,tau=None):
   times=np.arange(0,simtime+dt,dt)
   # 1000 is a factor because dt is in ms and freq in Hz
   #added -ton so that it starts at 0
@@ -142,8 +142,13 @@ def ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp=False,ramp_dura
   stim[times < ton] = 0
   stim[times > (ton + dur)] = 0
   if ramp:
-    current=generate_ramp_current(times, ramp_duration,dt)
-    # current=generate_exponential_ramp_current(times, ramp_duration, tau,dt)
+    if tau is None:
+      current=generate_ramp_current(times, ramp_duration,dt)
+    elif tau is 0:
+      tau=ramp_duration/3
+      current=generate_exponential_ramp_current(times, ramp_duration, tau,dt)
+    else:
+      current=generate_exponential_ramp_current(times, ramp_duration, tau,dt)
     stim=stim*current
 
   t=h.Vector(times)

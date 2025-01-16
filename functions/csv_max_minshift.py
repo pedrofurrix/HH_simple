@@ -67,7 +67,7 @@ def load_params(param_dir): #Load paramsssssssss (get them into a format where I
     return simparams, stimparams
 
 
-def cmax_shift(bot_dir,top_dir,param_dir,cell=None, filtered=False):
+def cmax_shift(bot_dir,top_dir,param_dir,var,cell=None, filtered=False):
     # voltages=load_voltages_csv(bot_dir)
     voltages=load_voltages_hdf5(bot_dir,filtered)
     headers=voltages.drop(columns=["t"]).columns.to_list()
@@ -92,6 +92,7 @@ def cmax_shift(bot_dir,top_dir,param_dir,cell=None, filtered=False):
     results = {
         "EValue": stimparams["E"]*stimparams["Multiplier"],
         "CFreq": stimparams["Carrier Frequency"],
+        "ModFreq": stimparams["Modulation Frequency"],
         "max_shiftp": max(pshift),
         "min_shiftp": min(pshift),
         "max_shiftn": max(nshift, key=abs),
@@ -171,7 +172,7 @@ def plot_show(bot_dir,results):
     ax3.set_title(title3)  # Optional: add title to the plot
     return fig3
 
-def plot_voltage(bot_dir,results,filtered):
+def plot_voltage(bot_dir,results,filtered=False):
     voltages=load_voltages_hdf5(bot_dir,filtered)
 
     t=voltages["t"]

@@ -70,7 +70,10 @@ def saveparams(run_id,simparams,stimparams,var):
             "Duration": stimparams[2],  # Duration in ms
             "Carrier Frequency": stimparams[3],  # Frequency in Hz
             "Modulation Depth": stimparams[4],  # Depth (0-1)
-            "Modulation Frequency": stimparams[5]  # Modulation frequency in Hz
+            "Modulation Frequency": stimparams[5] , # Modulation frequency in Hz
+            "Ramp Up":stimparams[10],
+            "RUp Duration":stimparams[11],
+            "tau":stimparams[12]
         }
     }
     with open(path, "w") as file:

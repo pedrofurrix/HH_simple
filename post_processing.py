@@ -12,20 +12,23 @@ import functions.low_pass as low_pass
 start=time.time()
 
 # # CF=[100,500,1000,2000,3000,5000,10000,20000,30000,40000,50000]
-# E=[10,20,30,50,100,150,200,300,400,500,700,1000]
+E=[10,20,30,50,100,150,200,300,400,500,700,1000]
 # CF=[100]
 # E=[90]
+MF=[0,5,10,20,30,40,50,100]
 cell_id=1
-var="cfreq"
-# for freq in CF:
-#     for e in E:
-#         top_dir,bot_dir=csv_max_minshift.get_folder(freq,e,cell_id)
-#         max_shift, max_v, min_v, results=csv_max_minshift.cmax_shift(bot_dir,top_dir, cell=None)
+var="modfreq"
+filter=False
+# for freq in MF:
+#      for e in E:
+#         top_dir,bot_dir,param_dir=csv_max_minshift.get_folder(freq,e,cell_id,var,filtered=filter)
+#         max_shift, max_v, min_v, results=csv_max_minshift.cmax_shift(bot_dir,top_dir,param_dir, var=var, cell=None,filtered=filter)
+
 #         # # max_shift, max_v, min_v,results=npmaxshift.cmax_shift_numpy(bot_dir,top_dir)
-#         csv_max_minshift.plot_voltage(bot_dir,results)
-    
-# import functions.spike_detector as spike_detector
-# spike_detector.spike_detector(bot_dir)
+#         csv_max_minshift.plot_voltage(bot_dir,results,filtered=filter)
+
+#         import functions.spike_detector as spike_detector
+#         spike_detector.spike_detector(bot_dir)
 
 
 # CF=100
@@ -38,11 +41,11 @@ var="cfreq"
 #     low_pass.filter_data(CF,e,cell_id,cutoff,order=order)
 
 # # low_pass.test_fake_data()
-filter=True
+
 import functions.process_results as pr
-summary_dfp,summary_dfn,top_dir=pr.load_results(cell_id,var,filtered=filter)
-pr.plot_results(summary_dfp,title="Max Shiftp",top_dir=top_dir,filtered=filter)
-pr.plot_results(summary_dfn,title="Max Shiftn",top_dir=top_dir,filtered=filter)
+summary_dfp,summary_dfn,top_dir=pr.load_results(cell_id,var=var,filtered=filter)
+pr.plot_results(summary_dfp,title="Max Shiftp",top_dir=top_dir,var=var,filtered=filter)
+pr.plot_results(summary_dfn,title="Max Shiftn",top_dir=top_dir,var=var,filtered=filter)
 
 end=time.time()
 print(f"Time passed:{end-start} seconds")

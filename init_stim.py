@@ -92,7 +92,7 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     h.celsius = 36
 
     simparams=[dt,simtime,cell_id,cell_name]
-    stimparams=[v_plate,ton,dur,freq,depth,modfreq,field_orientation,amp,distance,ref_point]
+    stimparams=[v_plate,ton,dur,freq,depth,modfreq,field_orientation,amp,distance,ref_point,ramp,ramp_duration,tau]
 
     freq_dir, e_dir = savedata.saveparams(run_id, simparams, stimparams,var)
     savedata.save_rx(freq_dir, v_plate,amp, cell)
