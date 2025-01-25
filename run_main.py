@@ -12,9 +12,9 @@ import init_stim
 
 start=time.time()
 
-var="test_ramping"
+var="cfreq"
 simtime=1000
-dt=0.001
+dt=0.01
 celsius=36
 run_id=0
 cell_id=1
@@ -23,15 +23,15 @@ distance=1
 field_orientation=[1,0,0]
 ref_point=[0,0,0]
 ton=0
-amp=100
+amp=70
 depth=1
 dur=simtime
-freq=2000
+freq=100
 modfreq=10
 ramp=True
-ramp_duration=300
-tau=None
-
+ramp_duration=400
+tau=0
+data_dir=os.getcwd()
 
 
 
@@ -39,7 +39,7 @@ try:
     print(f"Running simulation for freq={freq}, v_plate={amp}")
     e_dir, t, is_xtra, vrec, soma_v, dend_v, cell = init_stim.run_sim(
         simtime, dt, celsius, run_id, cell_id, v_plate, distance,
-        field_orientation, ref_point, ton, amp, depth, dur, freq, modfreq,var,ramp,ramp_duration,tau)
+        field_orientation, ref_point, ton, amp, depth, dur, freq, modfreq,var,ramp,ramp_duration,tau,data_dir=data_dir)
     print(f"Simulation completed for freq={freq}, v_plate={amp}")
     init_stim.save_plots(e_dir, t, is_xtra, vrec, soma_v, dend_v)
 except Exception as e:

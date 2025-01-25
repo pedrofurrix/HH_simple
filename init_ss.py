@@ -55,7 +55,7 @@ def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau):
     time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp,ramp_duration,tau)
     return time,stim1
 
-def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,ramp=False,ramp_duration=None,tau=None):
+def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,ramp=False,ramp_duration=None,tau=None,data_dir=os.getcwd()):
     cell, cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
     time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
 
@@ -114,13 +114,10 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
     title1="Membrane Potential"
 
     plt.show()
-    def saveparams(cell_id,simtime):
+    def saveparams(cell_id,simtime,data_dir):
         #Create folder for run
-        current_directory = os.getcwd()
-        print(current_directory)
-
-        folder_name=f"data\\{cell_id}\\steady_state"
-        ssfolder = os.path.join(current_directory, folder_name,f"{simtime}")
+        folder_name=os.path.join(data_dir,"data",str(cell_id),"steady_state")
+        ssfolder = os.path.join(folder_name,f"{simtime}")
         if not os.path.exists(ssfolder):
             os.makedirs(ssfolder)
 
@@ -148,7 +145,7 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
         
         return ssfolder,folder_name
 
-    ssfolder,folder_name=saveparams(cell_id,simtime)
+    ssfolder,folder_name=saveparams(cell_id,simtime,data_dir)
 
     from functions.savedata import saveplot
     saveplot(ssfolder,title1,fig)
@@ -174,7 +171,7 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
 
     save_steady_state(folder_name,steady_state)
 
-    folder=f"data\\{cell_id}"
+    folder=os.path.join(data_dir,"data",str(cell_id))
     savedata.savelocations_xtra(folder,cell)
     savedata.save_locations(folder,cell)
 
@@ -215,13 +212,13 @@ def get_max_segs(top_dir,cell):
     return segments
 
 def setup_apcs(top_dir,cell):
-    segments=get_max_segs(top_dir,cell)
+    # segments=get_max_segs(top_dir,cell)
     APCounters=[]
-    
+    segments=[seg for sec in cell.all for seg in sec]
     for segment in segments:
         ap_counter = h.APCount(segment) 
         APCounters.append(ap_counter)
-    print(APCounters)
+    # print(APCounters)
 
     recordings=[]
     # t=h.Vector().record(h._ref_t)
@@ -233,14 +230,14 @@ def setup_apcs(top_dir,cell):
     return segments,APCounters,recordings
 
 
-def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var="cfreq",ramp=False,ramp_duration=0,tau=None):
+def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var="cfreq",ramp=False,ramp_duration=0,tau=None,data_dir=os.getcwd()):
     cell,cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
     time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
     segments,APCounters,recordings=setup_apcs(top_dir,cell)
 
     h.dt = dt
     h.tstop = simtime
-    h.celsius = 37
+    h.celsius = 36
     h.v_init=cell.v_init
 
     h.finitialize()
@@ -271,13 +268,11 @@ def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,d
 
 
 
-    def saveparams(cell_id,simtime):
+    def saveparams(cell_id,simtime,data_dir):
         #Create folder for run
-        current_directory = os.getcwd()
-        print(current_directory)
 
-        folder_name=f"data\\{cell_id}\\{var}\\threshold\\steady_state"
-        ssfolder = os.path.join(current_directory, folder_name,f"{simtime}")
+        folder_name=os.path.join(data_dir,"data",str(cell_id),str(var),"threshold","steady_state")
+        ssfolder = os.path.join(folder_name,f"{simtime}")
         if not os.path.exists(ssfolder):
             os.makedirs(ssfolder)
 
@@ -322,7 +317,7 @@ def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,d
             data.to_csv(pathv)
             print(f"Voltages saved to {pathv}")
 
-    ssfolder,folder_name=saveparams(cell_id,simtime)
+    ssfolder,folder_name=saveparams(cell_id,simtime,data_dir)
 
     save_steady_state(folder_name,steady_state)
 

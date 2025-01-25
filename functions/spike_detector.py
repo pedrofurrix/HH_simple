@@ -7,12 +7,12 @@ import json
 
 
 
-def spike_detector(bot_dir,threshold=0):
+def spike_detector(bot_dir,param_dir,filtered=False,threshold=0):
     '''
     Voltages is a pd dataframe with the columns as the membrane potential for each segment and the rows being this potential over time
     '''
-    voltages=load_voltages_hdf5(bot_dir)
-    simparams, stimparams=load_params(bot_dir)
+    voltages=load_voltages_hdf5(bot_dir,filtered)
+    simparams, stimparams=load_params(param_dir)
 
     columns=list(voltages) # List of dataframe columns
     time=voltages[columns[0]].to_list() # Time values

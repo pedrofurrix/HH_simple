@@ -19,11 +19,11 @@ parser = ArgumentParser(description="Run a NEURON simulation with specified para
 parser.add_argument("-f", "--freq", type=float, required=True, help="Frequency (Hz) for the simulation")
 parser.add_argument("-v", "--voltage", type=float, required=True, help="Voltage (mV) for the simulation")
 parser.add_argument("-d", "--depth", type=float, required=False, default=1.0, help="Modulation depth (0-1)")
-parser.add_argument("-m", "--modfreq", type=float, required=True, help="Modulation Frequency (Hz)")
+parser.add_argument("-m", "--modfreq", type=float, required=False, default=10, help="Modulation Frequency (Hz)")
 
 args = parser.parse_args()
 
-var="modfreq"
+var="cfreq"
 simtime=1000
 dt=0.001
 celsius=36
@@ -35,19 +35,19 @@ field_orientation=[1,0,0]
 ref_point=[0,0,0]
 ton=0
 # amp=1
-# depth=1
+depth=1
 dur=simtime
 # freq=500
-# modfreq=10
-ramp=False
-ramp_duration=None
-tau=None
-
+modfreq=10
+ramp=True
+ramp_duration=400
+tau=0
+data_dir=os.getcwd()
 # Get command-line arguments
 freq = args.freq
 amp = args.voltage
-modfreq=args.modfreq
-depth= args.depth
+modfreq=args.modfreq if args.modfreq is not None else modfreq
+depth= args.depth if args.depth is not None else depth
 
 
 # for freq in CFreqs:
@@ -57,7 +57,7 @@ try:
     print(f"Running simulation for modfreq={modfreq}, v_plate={amp}")
     e_dir, t, is_xtra, vrec, soma_v, dend_v, cell = init_stim.run_sim(
         simtime, dt, celsius, run_id, cell_id, v_plate, distance,
-        field_orientation, ref_point, ton, amp, depth   , dur, freq, modfreq,var,ramp,ramp_duration,tau)
+        field_orientation, ref_point, ton, amp, depth   , dur, freq, modfreq,var,ramp,ramp_duration,tau,data_dir=data_dir)
     print(f"Simulation completed for freq={freq}, v_plate={amp}")
     init_stim.save_plots(e_dir, t, is_xtra, vrec, soma_v, dend_v)
 except Exception as e:

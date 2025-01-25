@@ -13,39 +13,28 @@ def savedata(bot_dir,t,is_xtra,vrec):
     data.to_csv(path,index=False)
     print(f"Vrec and is saved to {path}")
 
-def saveparams(run_id,simparams,stimparams,var):
+def saveparams(run_id,simparams,stimparams,var,data_dir=os.getcwd()):
     #Create folder for run
-    current_directory = os.getcwd()
-    print(current_directory)
     folder_name=f"data\\{simparams[2]}"
-    top_top_dir = os.path.join(current_directory, folder_name)
-
-    if not os.path.exists(top_top_dir):
-        os.makedirs(top_top_dir)
+    top_top_dir = os.path.join(data_dir,"data",f"{simparams[2]}")
     
     vari=os.path.join(top_top_dir,f"{var}")
-    if not os.path.exists(vari):
-        os.makedirs(vari)
+        
     if var=="cfreq":
         top_dir = os.path.join(vari, f"{int(stimparams[3])}Hz")
-        if not os.path.exists(top_dir):
-            os.makedirs(top_dir)
     elif var=="depth":
         top_dir = os.path.join(vari, f"{int(stimparams[4]*10)}")
-        if not os.path.exists(top_dir):
-            os.makedirs(top_dir)
     elif var=="modfreq":
         top_dir = os.path.join(vari, f"{int(stimparams[5])}Hz")
-        if not os.path.exists(top_dir):
-            os.makedirs(top_dir)
+
     else:
         top_dir = os.path.join(vari, f"{int(stimparams[3])}Hz")
-        if not os.path.exists(top_dir):
-            os.makedirs(top_dir)
+
 
     bot_dir = os.path.join(top_dir,f"{int(stimparams[0]*stimparams[7])}Vm")
-    if not os.path.exists(bot_dir):
-        os.makedirs(bot_dir)
+    # Use os.makedirs with exist_ok=True
+    os.makedirs(bot_dir, exist_ok=True)
+
 
 
     filename="params.json"

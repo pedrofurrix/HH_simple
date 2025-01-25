@@ -79,32 +79,47 @@ class Fourier:
         fourier = Fourier(signal, sampling_rate=2000.0)
     """
   
-    def __init__(self, signal,dt=0.001):
+    def __init__(self, signal,dt=0.001,start_time=0,modfreq=10):
         """
         Initialize the Fourier class.
 
         Args:
-            signal (np.ndarray): The samples of the signal
-            sampling_rate (float): The sampling per second of the signal
+            signal (np.ndarray): The samples of the signal.
+            dt (float): Time step of the signal in seconds. Default is 0.001 (1 ms).
+            start_time (float): Time in seconds to start analyzing the signal. Default is 0.0.
 
-        Additional parameters,which are required to generate Fourier calculations, are
-        calculated and defined to be initialized here too:
-            time_step (float): 1.0/sampling_rate
-            time_axis (np.ndarray): Generate the time axis from the duration and
-                                the time_step of the signal. The time axis is
-                                for better representation of the signal.
+        Additional parameters:
+            sampling_rate (float): The sampling rate in Hz.
             duration (float): The duration of the signal in seconds.
-            frequencies (numpy.ndarray): The frequency axis to generate the spectrum.
-            fourier (numpy.ndarray): The DFT using rfft from the scipy package.
+            time_axis (np.ndarray): Time axis of the filtered signal (after start_time).
+            frequencies (np.ndarray): Frequency axis for Fourier analysis.
+            fourier (np.ndarray): Fourier transform of the filtered signal.
         """
-        self.signal = signal
-        self.ac=self.signal-np.mean(self.signal)
-        self.sampling_rate = 1/(dt/1000) #Hz
-        self.time_step = dt/1000
-        self.duration = len(self.signal)/self.sampling_rate
-        self.time_axis = np.arange(0, self.duration, self.time_step)
-        self.frequencies = rfftfreq(len(self.signal), d = self.time_step)
+        self.original_signal = signal
+        self.sampling_rate = 1 / (dt / 1000)  # Hz
+        self.time_step = dt / 1000
+        self.start_time = start_time
+        self.modfreq=modfreq
+
+        # Calculate time axis for the original signal
+        self.original_duration = len(signal) / self.sampling_rate
+        self.original_time_axis = np.arange(0, self.original_duration, self.time_step)
+        
+        # Filter the signal based on start_time
+        start_index = int(self.start_time/1000 * self.sampling_rate)
+        self.signal = signal[start_index:]
+        self.time_axis = self.original_time_axis[start_index:]
+        self.ac = self.signal - np.mean(self.signal)
+        
+    
+        # Update duration, frequencies, and Fourier transform
+        self.duration = len(self.signal) / self.sampling_rate
+        self.frequencies = rfftfreq(len(self.signal), d=self.time_step)
         self.fourier = rfft(self.ac)
+
+        
+    
+
   # Generate the actual amplitudes of the spectrum
     def amplitude(self):
         """
@@ -113,7 +128,24 @@ class Fourier:
         Returns:
             numpy.ndarray of the actual amplitudes of the sinusoids.
         """
+
         return 2*np.abs(self.fourier)/len(self.signal)
+    
+    def powermod(self):
+        """
+        Method of Fourier
+
+        Returns:
+            numpy.ndarray of the actual amplitudes of the sinusoids.
+        """
+        # Create a frequency mask for the modulation band
+        freqmask = (self.frequencies >= 0.7 * self.modfreq) & (self.frequencies <= 1.3 * self.modfreq)
+        mod_power=sum(self.amplitude()[freqmask]**2)
+        total_power = np.sum(self.amplitude() ** 2)
+        # Normalize modulation power
+        normalized_power = mod_power / total_power
+
+        return mod_power, normalized_power
 
     # Generate the phase information from the output of rfft  
     def phase(self, degree = False):

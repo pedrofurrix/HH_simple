@@ -4,8 +4,8 @@ from .csv_max_minshift import get_folder,load_voltages_hdf5,load_params
 from .low_pass import get_results
 
 
-def load_vs(CF,E,cell_id,results=None,var="cfreq"):
-    freq_dir, e_dir=get_folder(CF,E,cell_id,var)
+def load_vs(CF,E,cell_id,results=None,var="cfreq",filtered=False):
+    freq_dir, e_dir,param_dir=get_folder(CF,E,cell_id,var)
     voltages=load_voltages_hdf5(e_dir)
 
     if results==None:
@@ -23,11 +23,14 @@ def load_vs(CF,E,cell_id,results=None,var="cfreq"):
     maxnvoltages = np.array(voltages[maxnseg].to_list())
     return t, maxpvoltages,maxnvoltages,e_dir
 
-def sma(t,voltages,window_size=10):
-
+def sma(t,voltages,dt=0.001,modfreq=10,window_size=None):
+    if window_size is None:
+        T=1/modfreq*1000 #ms
+        window_size=int(T/dt/3)
+        
     weights = np.ones(window_size) / window_size
     sma = np.convolve(voltages, weights, mode='valid')
-
+    
     sma_time = t[window_size - 1:]  # Start from where the SMA calculation begins
     
     title=f"Simple MA with Window Size={window_size}"

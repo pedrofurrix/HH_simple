@@ -7,6 +7,7 @@ import pandas as pd
 import json
 import csv
 import sys
+from functions.low_pass import filter_data_threshold
 
 h.load_file("stdrun.hoc")# Get the directory of the current script
 currdir = os.getcwd()
@@ -56,9 +57,8 @@ def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau):
     time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp,ramp_duration,tau)
     return time,stim1
 
-def restore_steady_state(cell_id,var):
-    currdir=os.getcwd()
-    path = os.path.join(currdir, f"data\\{cell_id}\\{var}\\threshold\\steady_state\\steady_state.bin")
+def restore_steady_state(cell_id,var,data_dir):
+    path = os.path.join(data_dir, "data",str(cell_id),str(var),"threshold","steady_state","steady_state.bin")
     savestate = h.SaveState()
     h_file = h.File(path)
     print(f"Getting steady state from {path}")
@@ -72,10 +72,10 @@ def restore_steady_state(cell_id,var):
     print(f"Steady state restored from {path}, and time reset to {h.t} ms")
 
 
-def add_callback(cell,cell_id,freq,segments,var):
+def add_callback(cell,cell_id,freq,segments,var,data_dir,save):
     from functions.all_voltages import custom_threshold
-    file,callback=custom_threshold(cell,cell_id,freq,segments,var)
-    return file, callback
+    folder,file,callback,voltages,finalize=custom_threshold(cell,cell_id,freq,segments,var,buffer_size=1000000,data_dir=data_dir,save=save,max_timesteps=1000000)
+    return folder, file, callback,voltages, finalize
 
 
 def get_results(top_dir):
@@ -112,12 +112,13 @@ def get_max_segs(top_dir,cell):
     return segments
 
 def setup_apcs(top_dir,cell):
-    segments=get_max_segs(top_dir,cell)
+    # segments=get_max_segs(top_dir,cell)
     APCounters=[]
+    segments=[seg for sec in cell.all for seg in sec]
     for segment in segments:
         ap_counter = h.APCount(segment)  # Use parentheses, not square brackets
         APCounters.append(ap_counter)
-    print(APCounters)
+    # print(APCounters)
 
     recordings=[]
     # t=h.Vector().record(h._ref_t)
@@ -152,12 +153,16 @@ def initialize(run_id,cell_id,v_plate,distance,field_orientation,ref_point,top_d
     print("Simulation Initialized")
     return APCounters,cell,recordings,segments
 
-def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,cb,var,ramp,ramp_duration,tau):
+def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,var,ramp,ramp_duration,tau,thresh=0,cb=False,save=True,data_dir=os.getcwd()):
     time,stim1= setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
 
     print(f"Set stim with amplitude: {amp} V/m")
     h.finitialize(cell.v_init)
-    restore_steady_state(cell_id,var)
+    restore_steady_state(cell_id,var,data_dir)
+    h.celsius=36
+
+    for apc in APCounters:
+        apc.thresh=thresh
 
     print("Before Stim")
     print(any(apc.n>0 for apc in APCounters))
@@ -169,25 +174,65 @@ def threshsearch(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounte
    
     if cb:
         print("Adding Callback")
-        file,callback=add_callback(cell,cell_id,freq,segments,var)
+        folder,file,callback,voltages,finalize=add_callback(cell,cell_id,freq,segments,var,data_dir=data_dir,save=save)
 
     print(f"Continue Run {simtime}")
     h.continuerun(simtime)
-    if cb:
-        file.close()
-        # get_maxv(cell_id,freq,segments,writer2)
+    
+    if cb and save:
 
-    print([apc.n for apc in APCounters])
-    any1=any(apc.n>0 for apc in APCounters)
+        finalize()
+        save_apcs(folder,APCounters,segments)
+        # get_maxv(cell_id,freq,segments,writer2)
+    nspikes=(simtime-ramp_duration)/1000*modfreq
+
+    any1=any(apc.n>=nspikes for apc in APCounters)
     print(any1)
-    print([apc.time for apc in APCounters])
 
     # ax,fig,title=plot_v(recordings,segments,freq,amp)
     return any1
 
+
+def filtered_search(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,var,ramp,
+                    ramp_duration,tau,cb=True,save=False,order=3,cutoff=100,data_dir=os.getcwd()):
+    time,stim1= setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
+
+    print(f"Set stim with amplitude: {amp} V/m")
+    h.finitialize(cell.v_init)
+    restore_steady_state(cell_id,var,data_dir)
+    h.celsius=36
+
+    print("Before Stim")
+    print(any(apc.n>0 for apc in APCounters))
+
+    h.frecord_init()  
+    h.dt = dt
+    h.tstop = simtime
+    h.celsius = 36
+   
+    if cb:
+        print("Adding Callback")
+        folder,file,callback,voltages,finalize=add_callback(cell,cell_id,freq,segments,var,data_dir=data_dir,save=save)
+
+    print(f"Continue Run {simtime}")
+    h.continuerun(simtime)
+
+    if cb and save:
+        finalize()
+        # get_maxv(cell_id,freq,segments,writer2)
+    print(voltages)
+    spike_count=filter_data_threshold(voltages,dt,order,cell_id,var,freq,cutoff,amp)
+    result=spike_count>=5
+    if all(result):
+        return True
+    else:
+        return False
+
+        
+                    
 def threshold(cell_id, simtime, v_plate, distance, field_orientation, 
               ref_point, dt, amp, depth, freq, modfreq, ton, dur, 
-              run_id, top_dir, thresh=0,cb=False,var="cfreq",ramp=False,ramp_duration=0,tau=None):
+              run_id, top_dir, thresh=0,cb=False,var="cfreq",ramp=False,ramp_duration=0,tau=None,save=False,data_dir=os.getcwd()):
     
     low = 0
     high = 1e6
@@ -201,8 +246,8 @@ def threshold(cell_id, simtime, v_plate, distance, field_orientation,
     while low == 0 or high == 1e6:
         print(f"Searching bounds: low={low}, high={high}, amp={amp}")
 
-        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb,var,ramp,ramp_duration,tau):
-         
+        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,var,ramp,ramp_duration,tau,thresh=thresh):
+        
             high = amp
             amp /= 2  # Reduce amplitude
         else:
@@ -229,7 +274,7 @@ def threshold(cell_id, simtime, v_plate, distance, field_orientation,
     while (high - low) > epsilon:
         print(f"Binary search: low={low}, high={high}, amp={amp}")
 
-        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb,var,ramp,ramp_duration,tau):
+        if threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,var,ramp,ramp_duration,tau,thresh=thresh):
             high = amp
         else:
             low = amp
@@ -244,15 +289,16 @@ def threshold(cell_id, simtime, v_plate, distance, field_orientation,
             break
     
     cb=True
-    threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments,cb, var,ramp,ramp_duration,tau)
+    save=True
+
+    threshsearch(cell_id, cell, simtime, dt, ton, amp, depth, dur, freq, modfreq, APCounters,recordings,segments, var,ramp,ramp_duration,tau,cb=cb,save=save,thresh=thresh)
     # saveplot(title,fig,cell_id,var)
     savethresh(amp, freq, cell_id,var)
     print([apc.n for apc in APCounters])
-    return high
+    return amp
 
-def savethresh(amp,freq,cell_id,var):
-    currdir=os.getcwd()
-    path = os.path.join(currdir, f"data\\{cell_id}\\{var}\\threshold\\thresholds.csv")
+def savethresh(amp,freq,cell_id,var,data_dir=os.getcwd()):
+    path = os.path.join(data_dir, "data",str(cell_id),str(var),"threshold","thresholds.csv")
 
     file_exists = os.path.exists(path)
 
@@ -309,7 +355,7 @@ def plot_v(recordings,segments,freq,amp):
 
     return ax,fig,title1
 
-def saveplot(title,fig_or_ax,cell_id,var):
+def saveplot(title,fig_or_ax,cell_id,var,data_dir):
     filename=f"{title}.png"
     if isinstance(fig_or_ax, plt.Axes):
         # If it's an Axes object, get the Figure from the Axes
@@ -320,7 +366,7 @@ def saveplot(title,fig_or_ax,cell_id,var):
     else:
         raise TypeError("Input must be a matplotlib Figure or Axes object.")
     
-    path=os.path.join(f"data\\{cell_id}\\{var}\\threshold",filename)
+    path=os.path.join(data_dir,"data",str(cell_id),str(var),"threshold",filename)
 
     fig.savefig(path, dpi=300, bbox_inches='tight')
     print(f"Successfully saved as {filename}")
@@ -338,3 +384,92 @@ def saveplot(title,fig_or_ax,cell_id,var):
 #     row=[run]+[max]
 #     writer2.writerow(row)
 #     run+=1
+
+def threshold_filter(cell_id, simtime, v_plate, distance, field_orientation, 
+              ref_point, dt, amp, depth, freq, modfreq, ton, dur, 
+              run_id, top_dir, thresh=0,cb=False,var="cfreq",ramp=False,ramp_duration=0,tau=None,save=False,order=3,cutoff=100,data_dir=os.getcwd()):
+    
+    low = 0
+    high = 1e6
+    APCounters, cell,recordings,segments = initialize(run_id, cell_id, v_plate, distance, field_orientation, ref_point, top_dir,thresh,freq)
+    
+    # Set a reasonable starting amplitude if none provided
+    if amp == 0: 
+        amp = 50
+
+    # Phase 1: Find an upper bound (high) and lower bound (low) where spiking behavior changes
+    while low == 0 or high == 1e6:
+        print(f"Searching bounds: low={low}, high={high}, amp={amp}")
+
+        if filtered_search(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,var,ramp,ramp_duration,tau,order=order,cutoff=cutoff,data_dir=data_dir):
+        
+            high = amp
+            amp /= 2  # Reduce amplitude
+        else:
+            low = amp
+            amp *= 2  # Increase amplitude
+        
+        # ax,fig,title=plot_v(recordings,segments,freq,amp)
+
+        # Stop the loop if stoprun_flag is True
+        if h.stoprun == 1: 
+            return amp
+        
+        # Prevent `amp` from exceeding a maximum reasonable value
+        if amp > 1e7:
+            print("Amplitude exceeded maximum allowable value. Exiting.")
+            amp = None
+            savethresh(amp, freq, cell_id)
+            return amp
+
+    # Phase 2: Perform binary search to refine the threshold
+    epsilon = high * 1e-2  # Define acceptable resolution for the threshold
+    amp = (high + low) / 2
+
+    while (high - low) > epsilon:
+        print(f"Binary search: low={low}, high={high}, amp={amp}")
+
+        if filtered_search(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,var,ramp,ramp_duration,tau,order=order,cutoff=cutoff,data_dir=data_dir):
+            high = amp
+        else:
+            low = amp
+        
+        # ax,fig,title=plot_v(recordings,segments,freq,amp)
+
+        amp = (high + low) / 2
+        epsilon=amp*1e-2
+
+        # Stop the loop if stoprun_flag is True
+        if h.stoprun == 1: 
+            break
+    
+    cb=True
+    save=True
+
+    filtered_search(cell_id,cell,simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,recordings,segments,var,ramp,ramp_duration,tau,order=order,cutoff=cutoff,cb=cb,save=save,data_dir=data_dir)
+    # saveplot(title,fig,cell_id,var)
+    savethresh(amp, freq, cell_id,var)
+    print([apc.n for apc in APCounters])
+    return high
+
+def save_apcs(folder,APCounters,segments):
+    """
+    Saves the APCounters and segments data into a JSON file.
+
+    Parameters:
+    - APCounters: A list or array of spike counts (number of spikes per segment).
+    - segments: A list or array of segment identifiers (e.g., segment names or indices).
+    - filename: The name of the file to save the data in (default is "spikes_data.json").
+    """
+    file=os.path.join(folder,"spikes_data.json")
+     # Create a dictionary to store the data
+    data = {}
+    
+    # Assuming APCounters and segments have the same length, pair them together
+    for i in range(len(segments)):
+        data[str(segments[i])] = APCounters[i].n
+     # Save the data to a JSON file~
+
+    with open(file, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+    print(f"Data saved to {file}")     

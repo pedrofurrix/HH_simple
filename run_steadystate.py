@@ -22,8 +22,8 @@ depth=1
 dur=simtime
 freq=0
 modfreq=0
-ramp=False
-ramp_duration=0
-tau=None
+ramp=True
+ramp_duration=400
+tau=0
 
 init_ss.get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)

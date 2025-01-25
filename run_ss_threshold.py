@@ -14,10 +14,11 @@ CF=2000
 E=10
 cell_id=1
 var="cfreq"
-top_dir,bot_dir=get_folder(CF,E,cell_id,var)
+data_dir=os.getcwd()
+top_dir,bot_dir,param_dir=get_folder(CF,E,cell_id,var,data_dir=data_dir)
 
 from init_ss import run_threshold
-simtime=1000
+simtime=5000
 dt=0.1
 celsius=36
 run_id=0
@@ -33,8 +34,10 @@ dur=simtime
 freq=0
 modfreq=0
 
-ramp=False
-ramp_duration=0
-tau=None
-run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var,ramp,ramp_duration,tau)
+ramp=True
+ramp_duration=400
+tau=0
+
+
+run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var,ramp,ramp_duration,tau,data_dir=data_dir)
 

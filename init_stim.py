@@ -51,9 +51,8 @@ def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau):
     time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp,ramp_duration,tau)
     return time,stim1
 
-def restore_steady_state(cell_id):
-    currdir=os.getcwd()
-    path = os.path.join(currdir, f"data\\{cell_id}\\steady_state\\steady_state.bin")
+def restore_steady_state(cell_id,data_dir):
+    path = os.path.join(data_dir,"data",str(cell_id),"steady_state","steady_state.bin")
     savestate = h.SaveState()
     h_file = h.File(path)
     print(f"{path}")
@@ -66,7 +65,7 @@ def restore_steady_state(cell_id):
     h.t = 0
     print(f"Steady state restored from {path}, and time reset to {h.t} ms")
 
-def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,var,ramp=False,ramp_duration=None,tau=None):
+def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,var,ramp=False,ramp_duration=None,tau=None,data_dir=os.getcwd()):
     
     print("Init cell")
     cell, cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
@@ -84,7 +83,7 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     h.finitialize(cell.v_init)
 
     print("Restore steady state")
-    restore_steady_state(cell_id)
+    restore_steady_state(cell_id,data_dir)
 
     h.frecord_init()
     h.dt = dt
@@ -94,7 +93,7 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     simparams=[dt,simtime,cell_id,cell_name]
     stimparams=[v_plate,ton,dur,freq,depth,modfreq,field_orientation,amp,distance,ref_point,ramp,ramp_duration,tau]
 
-    freq_dir, e_dir = savedata.saveparams(run_id, simparams, stimparams,var)
+    freq_dir, e_dir = savedata.saveparams(run_id, simparams, stimparams,var,data_dir)
     savedata.save_rx(freq_dir, v_plate,amp, cell)
     # file, callback = all_voltages.record_voltages(cell, e_dir)
     # file,callback=record_voltages_gpt.record_voltages_hdf5(cell,e_dir)
