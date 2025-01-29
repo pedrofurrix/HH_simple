@@ -94,7 +94,7 @@ def run_sim(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation
     stimparams=[v_plate,ton,dur,freq,depth,modfreq,field_orientation,amp,distance,ref_point,ramp,ramp_duration,tau]
 
     freq_dir, e_dir = savedata.saveparams(run_id, simparams, stimparams,var,data_dir)
-    savedata.save_rx(freq_dir, v_plate,amp, cell)
+    # savedata.save_rx(freq_dir, v_plate,amp, cell)
     # file, callback = all_voltages.record_voltages(cell, e_dir)
     # file,callback=record_voltages_gpt.record_voltages_hdf5(cell,e_dir)
 

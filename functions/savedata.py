@@ -18,23 +18,21 @@ def saveparams(run_id,simparams,stimparams,var,data_dir=os.getcwd()):
     folder_name=f"data\\{simparams[2]}"
     top_top_dir = os.path.join(data_dir,"data",f"{simparams[2]}")
     
-    vari=os.path.join(top_top_dir,f"{var}")
-        
-    if var=="cfreq":
+    # Create all necessary directories with exist_ok=True
+    vari = os.path.join(top_top_dir, f"{var}")
+    if var == "cfreq":
         top_dir = os.path.join(vari, f"{int(stimparams[3])}Hz")
-    elif var=="depth":
-        top_dir = os.path.join(vari, f"{int(stimparams[4]*10)}")
-    elif var=="modfreq":
+    elif var == "depth":
+        top_dir = os.path.join(vari, f"{int(stimparams[4] * 10)}")
+    elif var == "modfreq":
         top_dir = os.path.join(vari, f"{int(stimparams[5])}Hz")
-
     else:
         top_dir = os.path.join(vari, f"{int(stimparams[3])}Hz")
-
-
-    bot_dir = os.path.join(top_dir,f"{int(stimparams[0]*stimparams[7])}Vm")
+    
+    bot_dir = os.path.join(top_dir, f"{int(stimparams[0]*stimparams[7])}Vm")
+    
     # Use os.makedirs with exist_ok=True
     os.makedirs(bot_dir, exist_ok=True)
-
 
 
     filename="params.json"

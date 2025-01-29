@@ -80,6 +80,7 @@ def spike_detector(bot_dir,param_dir,filtered=False,threshold=0):
     with open(json_file, "w") as f:
         json.dump(summary, f, indent=4)
     print(f"Spike summary saved to {json_file}")    
+    return any_spikes
 
 
 # freq_dir,e_dir=get_folder(100,10,1)

@@ -13,8 +13,8 @@ import init_stim
 start=time.time()
 
 var="cfreq"
-simtime=1000
-dt=0.01
+simtime=1500
+dt=0.001
 celsius=36
 run_id=0
 cell_id=1
@@ -23,10 +23,10 @@ distance=1
 field_orientation=[1,0,0]
 ref_point=[0,0,0]
 ton=0
-amp=70
+amp=15
 depth=1
 dur=simtime
-freq=100
+freq=8000
 modfreq=10
 ramp=True
 ramp_duration=400

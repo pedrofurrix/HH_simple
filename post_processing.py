@@ -1,57 +1,95 @@
 import numpy as np
 import os
 import time
+from tqdm import tqdm
+import gc 
+import sys
+
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Change the working directory to the script's directory
 os.chdir(script_dir)
-import functions.csv_max_minshift as csv_max_minshift
-import functions.numpy_max_shift as npmaxshift
-import functions.low_pass as low_pass
 
+save_out=sys.stdout
+
+
+import functions.filter_and_max as filter_and_max
+import functions.process_results as process_results
+import functions.test_filters as test_filters
+import functions.spike_detector as spike_detector
 start=time.time()
 
-CF=[100,500,1000,2000,3000,5000,10000,20000,30000,40000,50000]
-E=[10,20,30,50,100,150,200,300,400,500,700,1000]
-# CF=[100]
-# E=[90]
-# MF=[0,5,10,20,30,40,50,100]
-
+CF=[2000,4000,5000,8000,10000,20000,25000,30000,35000]
+E=[1,2,3,5,10,15,20,30,40,50,70,100,200]
 cell_id=1
+modfreq=10
+dt=0.001
 var="cfreq"
 filter=False
-for freq in CF:
-      for e in E:
-#                 top_dir,bot_dir,param_dir=csv_max_minshift.get_folder(freq,e,cell_id,var,filtered=filter)
-#                 max_shift, max_v, min_v, results=csv_max_minshift.cmax_shift(bot_dir,top_dir,param_dir, var=var, cell=None,filtered=filter)
+data_dir=os.getcwd()
 
-# # #         # # max_shift, max_v, min_v,results=npmaxshift.cmax_shift_numpy(bot_dir,top_dir)
-#                 csv_max_minshift.plot_voltage(bot_dir,results,filtered=filter)
+pathf=os.path.join(data_dir,"data",str(cell_id),str(var))
+if not os.path.exists(pathf):
+      os.makedirs(pathf)
+path=os.path.join(pathf,'processing.log')
+log_file = open(path, 'a')  # Use 'w' to overwrite or 'a' to append
+sys.stdout = log_file
+sys.stderr = log_file
+order=4
+highcut=100
+# for freq in CF:
+#       for e in tqdm(E):
+#             try:
+#                   # Load data
+#                   top_dir, bot_dir, param_dir = filter_and_max.get_folder(freq, e, cell_id, var, filtered=filter, data_dir=data_dir)
+#                   t, voltages, segment_names = filter_and_max.load_voltages_hdf5(param_dir)
+                  
+#                   # # Before processing - Choose filter order
+#                   # test_filters.test_filters(freq, e, cell_id, var="cfreq", data_dir=data_dir, voltages=voltages, 
+#                   #                         time=t, segment_names=segment_names)
+#                   # any_spikes = spike_detector.spike_detector(bot_dir, param_dir, filtered=filter, threshold=0)
+    
+#                   # if any_spikes:
+#                   #       print("Spikes detected! Make sure to manually remove the spikes from the dataset.")
+#                   # Uncomment if you want to run the commented parts in your loop
+#                   max_shift, max_v, min_v, results = filter_and_max.analyze_shifts(
+#                       freq, e, cell_id, var, data_dir, voltages, t, segment_names, 
+#                       filtered=filter, highcut=highcut, order=order, modfreq=modfreq
+#                   )
+#                   max_shift, max_v, min_v, results = filter_and_max.analyze_shifts(
+#                       freq, e, cell_id, var, data_dir, voltages, t, segment_names, 
+#                       filtered=True, highcut=highcut, order=order, modfreq=modfreq
+#                   )
+#                   summary = filter_and_max.analyze_fourier_power(
+#                       freq, e, cell_id, var, filtered=filter, data_dir=data_dir,
+#                       voltages=voltages, segment_names=segment_names, dt=dt, modfreq=modfreq
+#                   )
+#             finally:
+#                   # Delete all large variables to free memory
+#                   del top_dir, bot_dir, param_dir
+#                   del t, voltages, segment_names
+#                   del max_shift,max_v,min_v,results
+#                   del summary
+#                   gc.collect()  # Force garbage collection to release memory
 
-#                 import functions.spike_detector as spike_detector
-#                 spike_detector.spike_detector(bot_dir,param_dir,filtered=filter)
 
-
-# CF=100
-# E=[80]
-# cell_id=1
-# cutoff=20
-# order=3
-
-                low_pass.filter_data(freq,e,cell_id,cutoff=100,results=None,var="cfreq",order=3,save=True,plot=True)
-
-# # low_pass.test_fake_data()
 
 import functions.process_results as pr
-summary_dfp,summary_dfn,top_dir=pr.load_results(cell_id,var=var,filtered=filter)
-pr.plot_results(summary_dfp,title="Max Shiftp",top_dir=top_dir,var=var,filtered=filter)
-pr.plot_results(summary_dfn,title="Max Shiftn",top_dir=top_dir,var=var,filtered=filter)
+# summary_dfp,summary_dfn,top_dir=pr.load_results(cell_id,var=var,filtered=filter,data_dir=data_dir)
+# pr.plot_results(cell_id,summary_dfp,title="Max Depolarization",top_dir=top_dir,var=var,filtered=filter,pos=True,data_dir=data_dir)
+# pr.plot_results(cell_id,summary_dfn,title="Max Hyperpolarization",top_dir=top_dir,var=var,filtered=filter,pos=False,data_dir=data_dir)
+# summary_dfp_filtered,summary_dfn_filtered,top_dir=pr.load_results(cell_id,var=var,filtered=True)
+# pr.plot_results(cell_id,summary_dfp_filtered,title="Max Depolarization",top_dir=top_dir,var=var,filtered=True,pos=True,data_dir=data_dir)
+# pr.plot_results(cell_id,summary_dfn_filtered,title="Max Hyperpolarization",top_dir=top_dir,var=var,filtered=True,pos=False,data_dir=data_dir)
+
+summary_df, summary_norm,top_dir=pr.load_fourier_power(cell_id,var,norm=False,data_dir=data_dir)
+pr.plot_fourier_power(cell_id,summary_df,summary_norm,title="Fourier Power",top_dir=top_dir,var="cfreq",evalue_threshold=None,norm=False,data_dir=data_dir)
 
 
-from functions.check_maxpseg import check_segs
-check_segs(cell_id,var,filtered=filter)
+# from functions.check_maxpseg import check_segs
+# check_segs(cell_id,var,filtered=filter)
 
-end=time.time()
-print(f"Time passed:{end-start} seconds")
-
+# end=time.time()
+# print(f"Time passed:{end-start} seconds")
+sys.stdout=save_out
 

@@ -32,6 +32,7 @@ def filter_and_save_voltages(bot_dir, highcut=100,order=4,lowcut=None,bp=False,m
         segment_names = infile["voltages"].attrs["segment_names"]
         dt=time[1]-time[0] #dt ms
         fs=1/(dt/1000) # Hz
+        
         # Create datasets for filtered data
         num_timesteps, num_segments = voltages.shape
         filtered_voltages = outfile.create_dataset(

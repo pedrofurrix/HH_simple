@@ -88,7 +88,6 @@ def cmax_shift(bot_dir,top_dir,param_dir,var,cell=None, filtered=False):
     nshift = [min_v[i] - v_init[i] for i in range(len(segments))]
     max_shift = [max(p, n, key=abs) for p, n in zip(pshift, nshift)]
     
-     
     results = {
         "EValue": stimparams["E"]*stimparams["Multiplier"],
         "CFreq": stimparams["Carrier Frequency"],
