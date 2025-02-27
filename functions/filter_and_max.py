@@ -8,8 +8,10 @@ from scipy.fft import fftfreq, rfftfreq
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+from scipy.stats import trim_mean
+import re
 
-from functions.savedata import saveplot
+from savedata import saveplot
 
 # Get folder
 def get_folder(CF,E,cell_id,var,filtered=False,data_dir=os.getcwd()):
@@ -120,20 +122,22 @@ def butter_bandpass_filter(signal, fs, modfreq=10,lowcut=None, highcut=None,orde
     # filtered = filtfilt(b, a, signal)
     return filtered,highcut,lowcut
 
-def filter_voltages(voltages, segment_names, time, fs, modfreq,bp=False, lowcut=None, highcut=None, order_low=3,order_bp=3,cutoff=100,target_fs=1000):
+def filter_voltages(voltages, segment_names, time, fs, modfreq,bp=False, lowcut=None, highcut=None, order_low=3,order_bp=3,cutoff=100,target_fs=1000,cutoff_dc=2):
     
     # Filter the voltages on-the-fly
     filtered_voltages = []
     for i, segment_name in enumerate(segment_names):
         v = voltages[:, i] - voltages[0, i]  # Zero baseline
-        filtered_v = butter_lowpass_filter(v, highcut, fs, order_low)
+        filtered_v = butter_lowpass_filter(v, cutoff, fs, order_low)
 
         if bp:
             subsampled=subsample_data(filtered_v,fs,target_fs)
-            time = subsample_data(time, fs, target_fs)
+            dc_v=butter_lowpass_filter(subsampled,cutoff_dc,target_fs,order=4)
             filtered_v,highcut,lowcut = butter_bandpass_filter(subsampled, target_fs, modfreq, lowcut, highcut, order_bp)
-
+    
         filtered_voltages.append(filtered_v)
+    if bp:
+        time = subsample_data(time, fs, target_fs)
     filtered_voltages = np.array(filtered_voltages).T
     return filtered_voltages,time,highcut,lowcut
 
@@ -167,7 +171,7 @@ def save_filterparams(output_dir,highcut,lowcut,order_low,order_bp,bp,target_fs,
     print(f"Filter parameters saved to {params_file}")
 
 def analyze_shifts(CF,E,cell_id,var="cfreq",data_dir=os.getcwd(),voltages=None, time=None,segment_names=None, 
-                   filtered=False,cutoff=None,highcut=None, order_low=4, order_bp=3, lowcut=None, bp=False, modfreq=10,target_fs=1000):
+                   filtered=False,cutoff=200,highcut=None, order_low=4, order_bp=3, lowcut=None, bp=False, modfreq=10,target_fs=1000):
 
     top_dir,bot_dir,param_dir=get_folder(CF,E,cell_id,var,filtered,data_dir)
 
@@ -179,7 +183,7 @@ def analyze_shifts(CF,E,cell_id,var="cfreq",data_dir=os.getcwd(),voltages=None, 
         fs = 1 / (dt / 1000)    
         voltages,time,highcut,lowcut=filter_voltages(voltages, segment_names, time,fs, modfreq,bp, lowcut, highcut, order_low=order_low,order_bp=order_bp,cutoff=cutoff,target_fs=target_fs)
         save_filterparams(bot_dir,highcut,lowcut,order_low,order_bp,bp,target_fs,cutoff)
-
+        print(time)
 
     # Analyze max_shift
     simparams, stimparams = load_params(param_dir)
@@ -203,7 +207,7 @@ def analyze_shifts(CF,E,cell_id,var="cfreq",data_dir=os.getcwd(),voltages=None, 
 
     # Create results
     results = {
-        "EValue": stimparams["E"]* stimparams["Multiplier"],
+        "EValue": stimparams["E"],
         "CFreq": stimparams["Carrier Frequency"],
         "ModFreq": stimparams["Modulation Frequency"],
         "max_shiftp": max(pshift),
@@ -338,7 +342,8 @@ class Fourier:
         self.signal = signal[start_index:]
         self.time_axis = self.original_time_axis[start_index:]
         self.ac = self.signal - np.mean(self.signal)
-        
+
+        self.dc=signal[start_index:]-signal[0]
     
         # Update duration, frequencies, and Fourier transform
         self.duration = len(self.signal) / self.sampling_rate
@@ -368,6 +373,15 @@ class Fourier:
         """
         # Create a frequency mask for the modulation band
         freqmask = (self.frequencies >= 0.7 * self.modfreq) & (self.frequencies <= 1.3 * self.modfreq)
+        mod_power=sum(self.amplitude()[freqmask]**2)
+        total_power = np.sum(self.amplitude() ** 2)
+        # Normalize modulation power
+        normalized_power = mod_power / total_power
+
+        return mod_power, normalized_power
+    
+    def dc_power(self):
+        freqmask=self.frequencies==0
         mod_power=sum(self.amplitude()[freqmask]**2)
         total_power = np.sum(self.amplitude() ** 2)
         # Normalize modulation power
@@ -578,7 +592,7 @@ def analyze_fourier_power(CF,E,cell_id,var,filtered=False,data_dir=os.getcwd(),v
 
     # Add maximum power and normalized power to the result dictionary
     summary = {
-        "EValue": stimparams["E"] * stimparams["Multiplier"],
+        "EValue": stimparams["E"],
         "CFreq": stimparams["Carrier Frequency"],
         "ModFreq": stimparams["Modulation Frequency"],
         "Max Power": max_power_row["Modulation Power"],
@@ -612,3 +626,62 @@ def analyze_fourier_power(CF,E,cell_id,var,filtered=False,data_dir=os.getcwd(),v
 
     return summary
 
+def analyze_fourier_averages(CF,E,cell_id,var,filtered=False,data_dir=os.getcwd()):
+    """
+    Load and summarize Fourier power data from a given directory structure.
+    
+    Args:
+        cell_id: Identifier for the cell.
+        var: The variable of interest ("cfreq" or "modfreq").
+        filtered: Whether to load filtered data.
+    
+    Returns:
+        summary_df: DataFrame summarizing Fourier power.
+        top_dir: Top-level directory where the data was loaded from.
+    """
+    top_dir, bot_dir, param_dir=get_folder(CF,E,cell_id,var,data_dir=data_dir)
+ 
+    average_file = os.path.join(top_dir, "average_fourier.csv")
+
+    # Initialize an empty dictionary to store Fourier power data
+    fourier_data = {}
+    fourier_norm={}
+
+    for folder_name in os.listdir(top_dir):
+        # Construct the full path
+        folder_path = os.path.join(top_dir, folder_name)
+
+        # Check if it's a directory
+        if os.path.isdir(folder_path):
+            print(f"Processing folder: {folder_name}")
+
+            # Extract the number (digits) from the folder name
+            match = re.search(r"\d+", folder_name)
+            if match:
+                evalue = int(match.group())  # Convert to integer
+
+            results_file = os.path.join(folder_path, "fourier_power_analysis.csv")           
+            if os.path.exists(results_file):
+                # Load the Fourier summary file
+                data = pd.read_csv(results_file)
+        
+                norm_power=data["Normalized Power"].tolist()
+                fourier_power=data["Modulation Power"].tolist()
+                
+                # Calculate the trimmed mean (removes lowest and highest 5%)
+                norm_avg = trim_mean(norm_power, proportiontocut=0.05)
+                fourier_avg = trim_mean(fourier_power, proportiontocut=0.05)
+                summary = {
+                        "EValue": evalue,
+                        "CFreq": CF,
+                        "power":fourier_avg,
+                        "norm":norm_avg,
+                }
+                top_file=average_file
+                summary_df = pd.DataFrame([summary])
+                if os.path.exists(top_file):
+                    # If file exists, append the new results without writing the header
+                    summary_df.to_csv(top_file, mode='a', index=False, header=False)
+                else:
+                    # If file does not exist, write the results with the header
+                    summary_df.to_csv(top_file, index=False, header=True)

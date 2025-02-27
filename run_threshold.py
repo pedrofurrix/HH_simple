@@ -21,63 +21,66 @@ path = os.path.join(currdir, "mechanisms", "nrnmech.dll")
 print(path)
 h.nrn_load_dll(path)
 
+nc=True
+if not nc:
+    from init_threshold import threshold
+else:
+    from init_threshold_ncs import threshold
+
+
 from functions.csv_max_minshift import get_folder
 save_out=sys.stdout
 
-def run_threshold(cell_id,freq,var):
-    start=time.time()
-    E=100
+cell_id=1
+var="cfreq"
 
-    top_dir,bot_dir,param_dir=get_folder(freq,E,cell_id,var,filtered=False)
-    pathf=os.path.join(os.getcwd(),"data",str(cell_id),str(var),"threshold",f"{freq}Hz")
-    if not os.path.exists(pathf):
-        os.makedirs(pathf)
-    path=os.path.join(pathf,'output.log')
-    log_file = open(path, 'a')  # Use 'w' to overwrite or 'a' to append
-    sys.stdout = log_file
-    sys.stderr = log_file
+start=time.time()
 
-    from init_threshold import threshold,initialize,threshsearch,threshold_filter
 
-    simtime=1000
-    dt=0.01
-    celsius=36
-    run_id=0
-    cell_id=1
-    v_plate=1
-    distance=1
-    field_orientation=[1,0,0]
-    ref_point=[0,0,0]
-    ton=0
-    amp=100
-    depth=1
-    dur=simtime
-    modfreq=10
-    cb=False
-    ramp=True
-    ramp_duration=400
-    tau=0
-    order=3
-    cutoff=100
-    thresh=20
-    data_dir=os.getcwd()
-    threshold(cell_id, simtime,v_plate,distance,field_orientation,
-              ref_point, dt, amp, depth, freq, modfreq,ton,dur,
-              run_id,top_dir,thresh=thresh,var=var,ramp=ramp,ramp_duration=ramp_duration,tau=tau,data_dir=data_dir)
-    # threshold_filter(cell_id, simtime,v_plate,distance,field_orientation,
-    #           ref_point, dt, amp, depth, freq, modfreq,ton,dur,
-    #           run_id,top_dir,thresh=thresh,var=var,ramp=ramp,ramp_duration=ramp_duration,tau=tau,order=order,cutoff=cutoff)
-    end=time.time()
-    print(f"The time of execution of above program is : {end-start} s")
-    print(f"The time of execution of above program is : {(end-start)/60} mins")
+pathf=os.path.join(os.getcwd(),"data",str(cell_id),str(var),"threshold")
+if not os.path.exists(pathf):
+    os.makedirs(pathf)
+path=os.path.join(pathf,'output.log')
+log_file = open(path, 'a')  # Use 'w' to overwrite or 'a' to append
+sys.stdout = log_file
+sys.stderr = log_file
 
-    sys.stdout=save_out
-    
-# Test run
-# APCounters,cell=initialize(run_id,cell_id,v_plate,distance,field_orientation,ref_point,top_dir)
-# apcs=threshsearch(cell_id,cell, simtime,dt,ton,amp,depth,dur,freq,modfreq,APCounters,thresh)
-# print(apcs)
+
+amp=100
+freq=1000
+simtime=1000
+dt=0.01
+celsius=36
+
 
 cell_id=1
-run_threshold(cell_id,100,"cfreq")
+theta=90
+phi=0
+ref_point=[0,0,0]
+ton=0
+
+depth=1
+dur=simtime
+modfreq=10
+ramp=True
+ramp_duration=400
+tau=0
+thresh=20
+data_dir=os.getcwd()
+record_all=False
+ufield=True
+coordinates=[0,0,0]
+rho=100
+cb=False
+
+threshold(cell_id, simtime,theta, phi,ref_point, dt, amp, depth, freq, modfreq,ton,dur,
+              thresh=thresh,cb=cb,var=var,ramp=ramp,ramp_duration=ramp_duration,tau=tau,data_dir=data_dir,ufield=ufield,coordinates=coordinates,rho=rho,record_all=record_all)
+end=time.time()
+print(f"The time of execution of above program is : {end-start} s")
+print(f"The time of execution of above program is : {(end-start)/60} mins")
+
+sys.stdout=save_out
+
+
+
 

@@ -130,7 +130,7 @@ INITIAL {
 : and instead use BEFORE BREAKPOINT and AFTER SOLVE
 
 BEFORE BREAKPOINT { : before each cy' = f(y,t) setup
-  ex = is*rx*(1e6)
+  ex = is*rx
 }
 AFTER SOLVE { : after each solution step
   er = (10)*rx*im*area

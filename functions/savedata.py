@@ -21,15 +21,19 @@ def saveparams(run_id,simparams,stimparams,var,data_dir=os.getcwd()):
     # Create all necessary directories with exist_ok=True
     vari = os.path.join(top_top_dir, f"{var}")
     if var == "cfreq":
-        top_dir = os.path.join(vari, f"{int(stimparams[3])}Hz")
+        top_dir = os.path.join(vari, f"{int(stimparams[2])}Hz")
     elif var == "depth":
-        top_dir = os.path.join(vari, f"{int(stimparams[4] * 10)}")
+        top_dir = os.path.join(vari, f"{int(stimparams[3] * 10)}")
     elif var == "modfreq":
-        top_dir = os.path.join(vari, f"{int(stimparams[5])}Hz")
+        top_dir = os.path.join(vari, f"{int(stimparams[4])}Hz")
+    elif var == "theta":
+        top_dir = os.path.join(vari, f"{int(stimparams[9])}")   
+    elif var == "phi":
+        top_dir = os.path.join(vari, f"{int(stimparams[10])}") 
     else:
-        top_dir = os.path.join(vari, f"{int(stimparams[3])}Hz")
+        top_dir = os.path.join(vari, f"{int(stimparams[2])}Hz")
     
-    bot_dir = os.path.join(top_dir, f"{int(stimparams[0]*stimparams[7])}Vm")
+    bot_dir = os.path.join(top_dir, f"{int(stimparams[5])}Vm")
     
     # Use os.makedirs with exist_ok=True
     os.makedirs(bot_dir, exist_ok=True)
@@ -48,19 +52,18 @@ def saveparams(run_id,simparams,stimparams,var,data_dir=os.getcwd()):
             "v_init": h.v_init  # in ms
         },
         "Stimulation Parameters": {
-            "E": stimparams[0],  # Electric field in V/m
-            "Orientation" : stimparams[6],
-            "Distance" : stimparams[8],
-            "Ref point": stimparams[9],
-            "Multiplier" : stimparams[7],
-            "Delay": stimparams[1],  # Delay in ms
-            "Duration": stimparams[2],  # Duration in ms
-            "Carrier Frequency": stimparams[3],  # Frequency in Hz
-            "Modulation Depth": stimparams[4],  # Depth (0-1)
-            "Modulation Frequency": stimparams[5] , # Modulation frequency in Hz
-            "Ramp Up":stimparams[10],
-            "RUp Duration":stimparams[11],
-            "tau":stimparams[12]
+            "E": stimparams[5],  # Electric field in V/m
+            "Theta" : stimparams[9],
+            "Phi" : stimparams[10],
+            "Ref point": stimparams[11],
+            "Delay": stimparams[0],  # Delay in ms
+            "Duration": stimparams[1],  # Duration in ms
+            "Carrier Frequency": stimparams[2],  # Frequency in Hz
+            "Modulation Depth": stimparams[3],  # Depth (0-1)
+            "Modulation Frequency": stimparams[4] , # Modulation frequency in Hz
+            "Ramp Up":stimparams[6],
+            "RUp Duration":stimparams[7],
+            "tau":stimparams[8]
         }
     }
     with open(path, "w") as file:
@@ -87,7 +90,7 @@ def savelocations_xtra(top_top_dir,cell):
                     writer.writerow([segname,x,y,z])
     return print(f"Saved to {path}")
 
-def save_rx(top_dir,Evalue,amp,cell):
+def save_rx(top_dir,theta,phi,cell):
     """
     Save 'rx' values to a CSV file, appending a new column for each run.
 
@@ -96,25 +99,24 @@ def save_rx(top_dir,Evalue,amp,cell):
     - top_dir
     - Evalue associated with the files...
     """
-    E=int(Evalue*amp)
     # Convert 'es' to a pandas DataFrame
-    es_values=[seg.rx_xtra*amp for sec in cell.all for seg in sec]
+    es_values=[seg.rx_xtra for sec in cell.all for seg in sec]
     out_file=os.path.join(top_dir,"rx_values.csv")
 
     if os.path.exists(out_file):
         # File exists, load existing data
         existing_data = pd.read_csv(out_file)
         # Append the new column
-        es_run = pd.DataFrame({f"Run_{E}": es_values})
-        existing_data[f"Run_{E}"] = es_run[f"Run_{E}"]
+        es_run = pd.DataFrame({f"Run_{theta}_{phi}": es_values})
+        existing_data[f"Run_{theta}_{phi}"] = es_run[f"Run_{theta}_{phi}"]
     else:
         # File does not exist, initialize with the new data
         seg=[seg for sec in cell.all for seg in sec]
-        es_init = pd.DataFrame({"seg_info":seg , f"Run_{E}": es_values})
+        es_init = pd.DataFrame({"seg_info":seg , f"Run_{theta}_{phi}": es_values})
         existing_data = es_init
 
     existing_data.to_csv(out_file, index=False)
-    print(f"'es*V' values saved to {out_file} for Run {E}.")
+    print(f"'es*V' values saved to {out_file} for Run {theta}_{phi}.")
 
 def saveplot(bot_dir,title,fig_or_ax):
     filename=f"{title}.png"

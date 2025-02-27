@@ -95,33 +95,17 @@ def playsin(ton,amp,dt,dur,simtime,freq):
   stim1.play(h._ref_is_xtra,t,0)
   return t,stim1
 
- #amp in mA, dt and tstop in ms, freq in Hz
-  #similar to the method that we see in Mirzakhalili-et-al--CellSystems-2020
+#amp in mA, dt and tstop in ms, freq in Hz
+#similar to the method that we see in Mirzakhalili-et-al--CellSystems-2020
 def simpleplaysin(amp,dt,tstop,freq):
   times=np.arange(0,tstop+dt,dt)
-  # 1000 is a factor because dt is in ms and freq in Hz
   stim=amp*np.sin(2*np.pi*freq/1000*times)
-
   t=h.Vector(times)
-  stim1=h.Vector(stim) #stim1=h.Vector(stim*1e-3)#see what this factor is for...#prob cause the amp is supposed to be in A/V
-  # # Debugging
-  # print("Length of NEURON time vector:", t.size())
-  # print("Length of NEURON stim vector:", stim1.size())
-  # print(list(t))
-  # print(list(stim1))
-  # print("Times array:", times)
-  # print("Length of times array:", len(times))
+  stim1=h.Vector(stim)
   stim1.play(h._ref_is_xtra,t,0)
   return t,stim1
 
 
-
-# def plotvector(vec,tvec,simtime,amp):
-#   g=h.Graph()
-#   g.size(0, simtime, -amp, amp) # Set the size of the graph (x-axis min/max, y-axis min/max)
-#   #g.size(0,10,-1,1)
-#   vec.plot(g,tvec)
-#   g.exec_menu("View = plot")
   
 #amp in mA, dt,dur and simtime in ms, freq in Hz
 #Amplitude modulation function, with variable depth and modulation frequency

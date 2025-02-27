@@ -20,9 +20,8 @@ def run_single_simulation(freq, amp):
     celsius = 36
     run_id = 0
     cell_id = 1
-    v_plate = 1
-    distance = 1
-    field_orientation = [1, 0, 0]
+    theta=90
+    phi=0
     ref_point = [0, 0, 0]
     ton = 0
     depth = 1
@@ -36,8 +35,7 @@ def run_single_simulation(freq, amp):
     data_dir=os.getcwd()
     try:
         e_dir, t, is_xtra, vrec, soma_v, dend_v, cell = init_stim.run_sim(
-        simtime, dt, celsius, run_id, cell_id, v_plate, distance,
-        field_orientation, ref_point, ton, amp, depth, dur, freq, modfreq,var,ramp,ramp_duration,tau,data_dir)
+        simtime, dt, celsius, run_id, cell_id, theta,phi, ref_point, ton, amp, depth, dur, freq, modfreq,var,ramp,ramp_duration,tau,data_dir)
         init_stim.save_plots(e_dir, t, is_xtra, vrec, soma_v, dend_v)
     except Exception as e:
         print(f"Error during simulation for freq={freq}, v_plate={amp}: {e}")

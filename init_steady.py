@@ -25,7 +25,7 @@ import functions.savedata as savedata
 #Local Field Potential calculation
 h.load_file("./functions/field.hoc")
 
-def init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point):
+def init_cell(cell_id,theta,phi,ref_point,ufield=True,coordinates=None,rho=100):
     if cell_id==1:
         cell=HHcells.Fast_Spiking(0,0,0,0,0,0)
     elif cell_id==2:
@@ -42,23 +42,24 @@ def init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point):
     # After Cell is created
     h.load_file("./functions/interpxyz.hoc")
     h.load_file("./functions/setpointers.hoc")
-
-    v_plate=v_plate*V #- potential difference between the plates
-    distance=distance*m #distance
-    field_orientation=np.array(field_orientation) 
-    ref_point=ref_point #reference point with a 0 e_extracellular
-    calcrx.set_uniform_field_between_plates(v_plate,distance,field_orientation,ref_point)
+    if ufield==True:
+        calcrx.set_uniform_field_between_plates(theta,phi,ref_point)
+    else:
+        xe, ye, ze = coordinates
+        calcrx.setelec(xe,ye,ze,rho)
 
     return cell, cell_name
+
 
 def setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau):
     time,stim1=stim.ampmodulation(ton,amp,depth,dt,dur,simtime,freq,modfreq,ramp,ramp_duration,tau)
     return time,stim1
 
-def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_orientation,ref_point,ton,amp,depth,dur,freq,modfreq,ramp=False,ramp_duration=None,tau=None,data_dir=os.getcwd()):
-    cell, cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
+def get_steady_state(simtime,dt,celsius,run_id,cell_id,theta,phi,ref_point,ton,amp,depth,dur,
+                     freq,modfreq,ramp=False,ramp_duration=None,tau=None,data_dir=os.getcwd(),ufield=True,coordinates=[0,0,0],rho=100,threshold=1e-7,time_before=1000):
+    cell, cell_name=init_cell(cell_id,theta,phi,ref_point,ufield,coordinates,rho)
     time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
-
+    
     t=h.Vector().record(h._ref_t)
     is_xtra=h.Vector().record(h._ref_is_xtra)
     soma_v=h.Vector().record(cell.soma(0.5)._ref_v)
@@ -82,7 +83,7 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
         global voltages
         voltages=[seg.v for sec in cell.all for seg in sec]
 
-    h.cvode.event(simtime-20, record_voltages)
+    h.cvode.event(simtime-time_before, record_voltages)
 
     h.continuerun(simtime)
 
@@ -98,7 +99,6 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
             return False
         return True
     
-    threshold=1e-3
     steady_state=steady_state_reached(threshold)
 
     max_dif=max(delta,key=abs)
@@ -174,6 +174,7 @@ def get_steady_state(simtime,dt,celsius,run_id,cell_id,v_plate,distance,field_or
     folder=os.path.join(data_dir,"data",str(cell_id))
     savedata.savelocations_xtra(folder,cell)
     savedata.save_locations(folder,cell)
+    savedata.save_rx(folder,theta,phi,cell)
 
 
 
@@ -219,22 +220,37 @@ def setup_apcs(top_dir,cell):
         ap_counter = h.APCount(segment) 
         APCounters.append(ap_counter)
     # print(APCounters)
-
-    recordings=[]
     # t=h.Vector().record(h._ref_t)
     # is_xtra=h.Vector().record(h._ref_is_xtra)
     # recordings.extend([t,is_xtra])
     # for segment in segments:
     #     rec=h.Vector().record(segment._ref_v)
     #     recordings.append(rec)
-    return segments,APCounters,recordings
+    return segments,APCounters
+
+def setup_netcons(top_dir,cell,record_all=False):
+    # segments=get_max_segs(top_dir,cell)
+    # 
+    if record_all:
+        segments=[seg for sec in cell.all for seg in sec]
+    else:
+        segments=[cell.soma(0.5)]
+    NCs=[]
+    Recorders=[h.Vector() for seg in segments]
+    for i,segment in enumerate(segments):
+        netcon = h.NetCon(segment._ref_v,None)
+        NCs.append(netcon)
+        netcon.record(Recorders[i])
+    return segments,NCs,Recorders
 
 
-def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var="cfreq",ramp=False,ramp_duration=0,tau=None,data_dir=os.getcwd()):
-    cell,cell_name=init_cell(run_id,cell_id,v_plate,distance,field_orientation,ref_point)
+def run_threshold(cell_id,theta,phi,ref_point,simtime,dt,ton,amp,depth,dur,freq,modfreq,top_dir,run_id,var="cfreq",ramp=False,ramp_duration=0,tau=None,data_dir=os.getcwd(),threshold=1e-7,time_before=1000,nc=False,record_all=False,ufield=True,coordinates=[0,0,0],rho=100):
+    cell, cell_name=init_cell(cell_id,theta,phi,ref_point,ufield,coordinates,rho)
     time,stim1=setstim(simtime,dt,ton,amp,depth,dur,freq,modfreq,ramp,ramp_duration,tau)
-    segments,APCounters,recordings=setup_apcs(top_dir,cell)
-
+    if not nc:
+        segments,APCounters=setup_apcs(top_dir,cell)
+    else:
+        segments,NCs,Recorders=setup_netcons(top_dir,cell,record_all)
     h.dt = dt
     h.tstop = simtime
     h.celsius = 36
@@ -246,7 +262,7 @@ def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,d
         global voltages
         voltages=[seg.v for sec in cell.all for seg in sec]
 
-    h.cvode.event(simtime-20, record_voltages)
+    h.cvode.event(simtime-time_before, record_voltages)
 
     h.continuerun(simtime)
 
@@ -255,12 +271,11 @@ def run_threshold(cell_id,v_plate,distance,field_orientation,ref_point,simtime,d
 
     delta = [final-v for final,v in zip(final_v, voltages)]
     # Check steady_state one time point
-    def steady_state_reached(threshold=1e-3):
+    def steady_state_reached(threshold):
         if abs(max(delta,key=abs)) >= threshold:
             return False
         return True
     
-    threshold=1e-3
     steady_state=steady_state_reached(threshold)
 
     max_dif=max(delta,key=abs)
