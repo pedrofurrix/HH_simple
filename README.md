@@ -1,4 +1,4 @@
-# Minimal Hodgkin–Huxley type models for different classes of cortical and thalamic neurons
+# Amplitude-Modulated Stimulation of Minimal Hodgkin–Huxley type models for different classes of cortical and thalamic neurons 
 
 - Fast Spiking 
 - Regular Spiking 
