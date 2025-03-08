@@ -147,7 +147,7 @@ def save_plots(e_dir,t,is_xtra,vrec,soma_v,dend_v):
     fig3,ax3=plt.subplots()
     ax3.plot(t,vrec)
     ax3.set_xlabel("time(ms)")
-    ax3.set_ylabel("vrec(uV)")
+    ax3.set_ylabel("vrec(V)")
     title3="Recorded_Potential"
     ax3.set_title(title3)
     savedata.saveplot(e_dir,title3,fig3)

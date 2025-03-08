@@ -106,8 +106,8 @@ ASSIGNED {
 }
 
 INITIAL {
-	ex = is*rx*(1e6)
-	er = (10)*rx*im*area
+	ex = is*rx
+	er = rx*im*area*0.00001 : er (Volts) =rx (Ohms) *im*10**-3*10**-8 (Amp/um^2) *area
 : this demonstrates that area is known
 : UNITSOFF
 : printf("area = %f\n", area)
@@ -133,6 +133,6 @@ BEFORE BREAKPOINT { : before each cy' = f(y,t) setup
   ex = is*rx
 }
 AFTER SOLVE { : after each solution step
-  er = (10)*rx*im*area
+  er = rx*im*area*0.00001 :V
 }
 
